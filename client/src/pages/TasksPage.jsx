@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
-  useSensor, useSensors, pointerWithin,
+  useSensor, useSensors, pointerWithin, useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext, sortableKeyboardCoordinates,
@@ -85,7 +85,7 @@ function PrioritySelect({ value, onChange, disabled }) {
 }
 
 function AssigneeSelect({ value, users, onChange, disabled }) {
-  const curId = typeof value === 'object' ? value?._id || '' : value || '';
+  const curId = value && typeof value === 'object' ? (value._id || '') : (value || '');
   return (
     <div className="relative inline-flex items-center">
       <User className="absolute left-2 w-3 h-3 pointer-events-none text-slate-400"/>
@@ -554,7 +554,7 @@ function BoardCard({ task, users, onUpdate, onDelete, onOpen, overlay }) {
 
 function BoardColumn({ status, tasks, users, isAdminOrHR, onUpdate, onDelete, onOpen, setTasks }) {
   const sc = stCfg(status);
-  const { setNodeRef, isOver } = useSortable({ id: status, data: { type: 'column' } });
+  const { setNodeRef, isOver } = useDroppable({ id: status });
 
   async function addCard() {
     try {
@@ -841,6 +841,7 @@ export default function TasksPage() {
 
         {selectedTask && (
           <TaskPanel
+            key={selectedTask._id}
             task={selectedTask}
             users={users}
             isAdminOrHR={isAdminOrHR}

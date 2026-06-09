@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
-  useSensor, useSensors, pointerWithin,
+  useSensor, useSensors, pointerWithin, useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext, sortableKeyboardCoordinates,
@@ -86,8 +86,8 @@ function PrioritySelect({ value, onChange, disabled }) {
 }
 
 function AssigneeSelect({ value, users, onChange, disabled }) {
-  const cur = users.find(u => (u._id === value || (value && (value._id === u._id))));
-  const curId = cur?._id || '';
+  // value may be a populated object {_id, name} or a plain string ID
+  const curId = value && typeof value === 'object' ? (value._id || '') : (value || '');
   return (
     <div className="relative inline-flex items-center">
       <User className="absolute left-2 w-3 h-3 pointer-events-none text-slate-400"/>
@@ -599,7 +599,7 @@ function BoardCard({ task, users, onUpdate, onDelete, onOpen, overlay }) {
 
 function BoardColumn({ status, tasks, users, isAdminOrHR, spaceId, onUpdate, onDelete, onOpen, setTasks }) {
   const sc = stCfg(status);
-  const { setNodeRef, isOver } = useSortable({ id: status, data: { type: 'column' } });
+  const { setNodeRef, isOver } = useDroppable({ id: status });
 
   async function addCard() {
     try {
