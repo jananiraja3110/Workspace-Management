@@ -49,15 +49,15 @@ export function SortableTaskList({ tasks, onReorder, children }) {
     const newIdx = tasks.findIndex(t => t._id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
 
+    const original = [...tasks];
     const reordered = arrayMove(tasks, oldIdx, newIdx);
     onReorder(reordered);
 
-    // Persist to server
     try {
       const updates = reordered.map((t, i) => ({ id: t._id, status: t.status, order: i }));
       await API.patch('/tasks/reorder', { updates });
     } catch {
-      // revert on failure — parent handles via onReorder
+      onReorder(original);
     }
   }
 

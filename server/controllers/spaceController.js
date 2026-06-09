@@ -36,6 +36,17 @@ const createSpace = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /api/spaces/:id — single space
+const getSpaceById = async (req, res, next) => {
+  try {
+    const space = await Space.findById(req.params.id)
+      .populate('members', 'name email avatar')
+      .populate('createdBy', 'name');
+    if (!space) { res.status(404); return next(new Error('Space not found')); }
+    res.json({ success: true, space });
+  } catch (err) { next(err); }
+};
+
 // PUT /api/spaces/:id — admin/hr only
 const updateSpace = async (req, res, next) => {
   try {
@@ -78,4 +89,4 @@ const getSpaceTasks = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getSpaces, createSpace, updateSpace, deleteSpace, getSpaceTasks };
+module.exports = { getSpaces, getSpaceById, createSpace, updateSpace, deleteSpace, getSpaceTasks };

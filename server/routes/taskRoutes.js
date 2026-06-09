@@ -14,18 +14,18 @@ const { upload } = require('../middleware/upload');
 router.use(protect);
 
 router.get('/', getTasks);
-router.post('/', authorize('admin', 'hr'), createTask);
+router.post('/', createTask);
 router.patch('/reorder', reorderTasks);
 router.get('/:id', getTaskById);
 router.put('/:id', updateTask);
-router.delete('/:id', authorize('admin', 'hr'), deleteTask);
+router.delete('/:id', deleteTask);
 
 router.patch('/:id/watch', toggleWatch);
 router.patch('/:id/time', logTime);
 
-router.post('/:id/subtasks', authorize('admin', 'hr'), addSubtask);
+router.post('/:id/subtasks', addSubtask);
 router.patch('/:id/subtasks/:subtaskId', toggleSubtask);
-router.delete('/:id/subtasks/:subtaskId', authorize('admin', 'hr'), deleteSubtask);
+router.delete('/:id/subtasks/:subtaskId', deleteSubtask);
 
 router.post('/:id/comments', addComment);
 

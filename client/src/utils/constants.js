@@ -4,7 +4,7 @@ export const TASK_STATUS = { PENDING: 'pending', TODO: 'todo', IN_PROGRESS: 'in-
 
 export const LEAVE_TYPES = { CASUAL: 'casual', SICK: 'sick', EARNED: 'earned' };
 
-export const PRIORITY = { LOW: 'low', MEDIUM: 'medium', HIGH: 'high' };
+export const PRIORITY = { LOW: 'low', MEDIUM: 'medium', HIGH: 'high', URGENT: 'urgent' };
 
 export const PRIORITY_COLORS = {
   low: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',

@@ -53,10 +53,11 @@ function dayLabel(d) {
 }
 
 const STATUS_DOT = {
-  pending:     'bg-blue-500',
+  pending:       'bg-slate-400',
+  todo:          'bg-purple-500',
   'in-progress': 'bg-amber-500',
-  completed:   'bg-emerald-500',
-  overdue:     'bg-red-500',
+  completed:     'bg-emerald-500',
+  overdue:       'bg-red-500',
 };
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
