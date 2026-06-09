@@ -174,7 +174,8 @@ const addSubtask = async (req, res, next) => {
     const task = await Task.findById(req.params.id);
     if (!task) { res.status(404); return next(new Error('Task not found')); }
 
-    task.subtasks.push({ title: req.body.title, assignedTo: req.body.assignedTo || null });
+    if (!req.body.title?.trim()) { res.status(400); return next(new Error('Subtask title is required')); }
+    task.subtasks.push({ title: req.body.title.trim(), assignedTo: req.body.assignedTo || null });
     await task.save();
 
     const populated = await populateTask(Task.findById(task._id));
@@ -250,10 +251,11 @@ const logTime = async (req, res, next) => {
 // @access  Private
 const addComment = async (req, res, next) => {
   try {
+    if (!req.body.text?.trim()) { res.status(400); return next(new Error('Comment text is required')); }
     const task = await Task.findById(req.params.id);
     if (!task) { res.status(404); return next(new Error('Task not found')); }
 
-    task.comments.push({ user: req.user._id, text: req.body.text, createdAt: new Date() });
+    task.comments.push({ user: req.user._id, text: req.body.text.trim(), createdAt: new Date() });
     await task.save();
 
     // Parse @mentions — find @Name patterns, match against users
