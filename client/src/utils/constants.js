@@ -1,6 +1,6 @@
 export const ROLES = { ADMIN: 'admin', HR: 'hr', DEVELOPER: 'developer' };
 
-export const TASK_STATUS = { PENDING: 'pending', IN_PROGRESS: 'in-progress', COMPLETED: 'completed', OVERDUE: 'overdue' };
+export const TASK_STATUS = { PENDING: 'pending', TODO: 'todo', IN_PROGRESS: 'in-progress', COMPLETED: 'completed', OVERDUE: 'overdue' };
 
 export const LEAVE_TYPES = { CASUAL: 'casual', SICK: 'sick', EARNED: 'earned' };
 
@@ -14,7 +14,8 @@ export const PRIORITY_COLORS = {
 };
 
 export const STATUS_COLORS = {
-  pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+  pending: 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-300',
+  todo: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
   'in-progress': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
   completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
   overdue: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
@@ -37,8 +38,8 @@ export const SIDEBAR_LINKS = [
     { name: 'Announcements', path: '/announcements', icon: 'Megaphone', roles: ['admin', 'hr', 'developer'] },
   ]},
   { section: 'Work', items: [
-    { name: 'Spaces', path: '/spaces', icon: 'Layers', roles: ['admin', 'hr', 'developer'] },
     { name: 'Tasks', path: '/tasks', icon: 'CheckSquare', roles: ['admin', 'hr', 'developer'] },
+    { name: 'Timesheet', path: '/timesheet', icon: 'Timer', roles: ['admin', 'hr', 'developer'] },
     { name: 'Messages', path: '/messages', icon: 'MessageSquare', roles: ['admin', 'hr', 'developer'] },
     { name: 'Daily Progress', path: '/standups', icon: 'ClipboardList', roles: ['admin', 'hr', 'developer'] },
     { name: 'Attendance', path: '/attendance', icon: 'Clock', roles: ['admin', 'hr', 'developer'] },

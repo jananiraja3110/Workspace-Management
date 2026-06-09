@@ -86,7 +86,8 @@ app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/celebrations', require('./routes/celebrationRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
-app.use('/api/spaces',   require('./routes/spaceRoutes'));
+app.use('/api/spaces',       require('./routes/spaceRoutes'));
+app.use('/api/timeentries',  require('./routes/timeEntryRoutes'));
 
 // Error handler
 const errorHandler = require('./middleware/errorHandler');

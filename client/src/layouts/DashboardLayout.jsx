@@ -44,6 +44,7 @@ import { SIDEBAR_LINKS } from '../utils/constants';
 import { getInitials } from '../utils/helpers';
 import { SearchTrigger } from '../components/common/GlobalSearch';
 import { useSocket } from '../hooks/useSocket';
+import SpaceTree from '../components/layout/SpaceTree';
 
 const iconMap = {
   LayoutDashboard,
@@ -163,6 +164,7 @@ const DashboardLayout = () => {
     }
     if (location.pathname === '/profile') return 'Profile';
     if (location.pathname === '/notifications') return 'Notifications';
+    if (location.pathname.startsWith('/spaces/')) return 'Space';
     return 'Dashboard';
   };
 
@@ -193,6 +195,9 @@ const DashboardLayout = () => {
               </p>
             )}
             {collapsed && <div className="h-px bg-indigo-800/50 mx-2 mb-2" />}
+            {section.section === 'Work' && (
+              <SpaceTree collapsed={collapsed} />
+            )}
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = iconMap[item.icon] || LayoutDashboard;

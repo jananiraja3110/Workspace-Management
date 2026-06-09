@@ -34,6 +34,7 @@ import UsersPage from '../pages/UsersPage';
 import ProfilePage from '../pages/ProfilePage';
 import CelebrationsPage from '../pages/CelebrationsPage';
 import SpacesPage from '../pages/SpacesPage';
+import SpaceDetailPage from '../pages/SpaceDetailPage';
 import TimesheetPage from '../pages/TimesheetPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -78,6 +79,7 @@ const AppRoutes = () => {
           <Route path="/directory" element={<DirectoryPage />} />
           <Route path="/celebrations" element={<CelebrationsPage />} />
           <Route path="/spaces" element={<SpacesPage />} />
+          <Route path="/spaces/:id" element={<SpaceDetailPage />} />
           <Route path="/timesheet" element={<TimesheetPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
