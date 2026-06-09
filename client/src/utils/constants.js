@@ -37,6 +37,7 @@ export const SIDEBAR_LINKS = [
     { name: 'Announcements', path: '/announcements', icon: 'Megaphone', roles: ['admin', 'hr', 'developer'] },
   ]},
   { section: 'Work', items: [
+    { name: 'Spaces', path: '/spaces', icon: 'Layers', roles: ['admin', 'hr', 'developer'] },
     { name: 'Tasks', path: '/tasks', icon: 'CheckSquare', roles: ['admin', 'hr', 'developer'] },
     { name: 'Messages', path: '/messages', icon: 'MessageSquare', roles: ['admin', 'hr', 'developer'] },
     { name: 'Daily Progress', path: '/standups', icon: 'ClipboardList', roles: ['admin', 'hr', 'developer'] },
@@ -47,9 +48,9 @@ export const SIDEBAR_LINKS = [
   { section: 'Tools', items: [
     { name: 'Celebrations', path: '/celebrations', icon: 'PartyPopper', roles: ['admin', 'hr', 'developer'] },
     { name: 'Documents', path: '/documents', icon: 'FileText', roles: ['admin', 'hr', 'developer'] },
-    { name: 'Conference Room', path: '/room-booking', icon: 'DoorOpen', roles: ['admin', 'hr', 'developer'] },
-    { name: 'Help Desk', path: '/tickets', icon: 'LifeBuoy', roles: ['admin', 'hr', 'developer'] },
-    { name: 'Personal Vault', path: '/vault', icon: 'Lock', roles: ['admin', 'hr', 'developer'] },
+    { name: 'Conference Room', path: '/room-booking', icon: 'DoorOpen', roles: ['admin', 'hr', 'developer'], comingSoon: true },
+    { name: 'Help Desk', path: '/tickets', icon: 'LifeBuoy', roles: ['admin', 'hr', 'developer'], comingSoon: true },
+    { name: 'Personal Vault', path: '/vault', icon: 'Lock', roles: ['admin', 'hr', 'developer'], comingSoon: true },
     { name: 'Directory', path: '/directory', icon: 'Users', roles: ['admin', 'hr', 'developer'] },
   ]},
   { section: 'Admin', items: [

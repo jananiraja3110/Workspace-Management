@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../hooks/useAuth';
+import { useSocket } from '../hooks/useSocket';
 import {
   Bell, CheckSquare, CalendarOff, MessageSquare, Megaphone,
   Receipt, Cake, CreditCard, Inbox, CheckCheck,
@@ -115,6 +117,7 @@ function NotificationRow({ notif, onMarkRead, navigate }) {
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('unread');
@@ -122,6 +125,11 @@ const NotificationsPage = () => {
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  // Prepend new real-time notifications
+  useSocket(user?._id, (notif) => {
+    setNotifications(prev => [notif, ...prev]);
+  });
 
   async function fetchNotifications() {
     try {

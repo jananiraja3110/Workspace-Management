@@ -193,6 +193,49 @@ const markAsRead = async (req, res, next) => {
   }
 };
 
+// @desc    Toggle emoji reaction on announcement
+// @route   PATCH /api/announcements/:id/react
+// @access  Private
+const reactToAnnouncement = async (req, res, next) => {
+  try {
+    const { emoji } = req.body;
+    if (!emoji) {
+      res.status(400);
+      return next(new Error('Emoji is required'));
+    }
+
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      res.status(404);
+      return next(new Error('Announcement not found'));
+    }
+
+    const userId = req.user._id;
+    let reaction = announcement.reactions.find(r => r.emoji === emoji);
+
+    if (reaction) {
+      const idx = reaction.users.findIndex(u => u.toString() === userId.toString());
+      if (idx !== -1) {
+        reaction.users.splice(idx, 1);
+        if (reaction.users.length === 0) {
+          announcement.reactions = announcement.reactions.filter(r => r.emoji !== emoji);
+        }
+      } else {
+        reaction.users.push(userId);
+      }
+    } else {
+      announcement.reactions.push({ emoji, users: [userId] });
+    }
+
+    await announcement.save();
+    await announcement.populate('createdBy', 'name');
+
+    res.status(200).json({ success: true, announcement });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAnnouncements,
   createAnnouncement,
@@ -200,4 +243,5 @@ module.exports = {
   deleteAnnouncement,
   togglePin,
   markAsRead,
+  reactToAnnouncement,
 };

@@ -3,12 +3,13 @@ import API from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
-  User, Save, Lock, Loader2, Mail, Phone, Building, Award, Hash
+  User, Save, Lock, Loader2, Mail, Phone, Building, Award, Hash, Camera
 } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, setUser } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || '',
@@ -43,6 +44,27 @@ const ProfilePage = () => {
       developer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     };
     return colors[role] || colors.employee;
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    setAvatarUploading(true);
+    try {
+      const { data } = await API.put(`/users/${user._id}/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      // update auth context user if possible, show success
+      toast.success('Profile photo updated');
+      // Force reload to pick up new avatar
+      window.location.reload();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -91,8 +113,24 @@ const ProfilePage = () => {
       {/* Profile Header */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center gap-5">
-          <div className={`w-20 h-20 rounded-full ${initialsColor(user?.name)} flex items-center justify-center`}>
-            <span className="text-white text-2xl font-bold">{getInitials(user?.name)}</span>
+          <div className="relative w-24 h-24 flex-shrink-0">
+            {user?.avatar ? (
+              <img src={user.avatar} className="w-24 h-24 rounded-full object-cover" alt={user.name} />
+            ) : (
+              <div className={`w-24 h-24 rounded-full ${initialsColor(user?.name)} flex items-center justify-center`}>
+                <span className="text-white text-2xl font-bold">{getInitials(user?.name)}</span>
+              </div>
+            )}
+            {avatarUploading ? (
+              <div className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800">
+                <Loader2 className="w-4 h-4 text-white animate-spin" />
+              </div>
+            ) : (
+              <label htmlFor="avatar-input" className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800 cursor-pointer transition-colors">
+                <Camera className="w-4 h-4 text-white" />
+              </label>
+            )}
+            <input id="avatar-input" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div className="text-center sm:text-left">
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{user?.name}</h2>

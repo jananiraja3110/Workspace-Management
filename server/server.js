@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 
 // Load env vars
@@ -11,14 +13,48 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// Socket.io setup
+const io = new Server(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+});
+
+// Map userId → socketId for targeted pushes
+const userSockets = new Map();
+
+io.on('connection', (socket) => {
+  socket.on('register', (userId) => {
+    if (userId) userSockets.set(String(userId), socket.id);
+  });
+  socket.on('disconnect', () => {
+    for (const [uid, sid] of userSockets.entries()) {
+      if (sid === socket.id) { userSockets.delete(uid); break; }
+    }
+  });
+});
+
+// Push a notification to a specific user in real-time
+const pushNotification = (userId, payload) => {
+  const sid = userSockets.get(String(userId));
+  if (sid) io.to(sid).emit('notification', payload);
+};
+
+// Make io + pushNotification available to controllers
+app.set('io', io);
+app.set('pushNotification', pushNotification);
+
+// Wire socket push into notification util
+const { setPushFn } = require('./utils/createNotification');
+setPushFn(pushNotification);
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? ['https://workspace.absolutedata.ai', 'https://www.workspace.absolutedata.ai']
   : true;
 app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -50,6 +86,7 @@ app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/celebrations', require('./routes/celebrationRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/spaces',   require('./routes/spaceRoutes'));
 
 // Error handler
 const errorHandler = require('./middleware/errorHandler');
@@ -72,6 +109,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

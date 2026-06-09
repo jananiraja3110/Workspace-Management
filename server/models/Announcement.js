@@ -9,6 +9,10 @@ const announcementSchema = new mongoose.Schema(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     visibleTo: { type: String, enum: ['all', 'hr', 'developers'], default: 'all' },
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    reactions: [{
+      emoji: { type: String },
+      users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    }],
     expiresAt: { type: Date },
   },
   { timestamps: true }

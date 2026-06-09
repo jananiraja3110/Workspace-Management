@@ -38,6 +38,9 @@ const taskSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    space: { type: mongoose.Schema.Types.ObjectId, ref: 'Space', default: null },
+    recurring: { type: String, enum: ['none', 'daily', 'weekly', 'monthly'], default: 'none' },
+    recurringEndDate: { type: Date, default: null },
     order: { type: Number, default: 0 },
   },
   { timestamps: true }

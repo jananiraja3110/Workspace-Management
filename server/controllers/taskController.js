@@ -10,6 +10,7 @@ const populateTask = (query) =>
     .populate('assignedTo', 'name')
     .populate('assignedBy', 'name')
     .populate('project', 'name')
+    .populate('space', 'name color icon')
     .populate('watchers', 'name')
     .populate('subtasks.assignedTo', 'name')
     .populate('comments.user', 'name');
@@ -30,9 +31,10 @@ const getTasks = async (req, res, next) => {
       filter = { $or: [{ assignedTo: _id }, { watchers: _id }] };
     }
 
-    if (req.query.status) filter.status = req.query.status;
+    if (req.query.status)   filter.status   = req.query.status;
     if (req.query.priority) filter.priority = req.query.priority;
-    if (req.query.project) filter.project = req.query.project;
+    if (req.query.project)  filter.project  = req.query.project;
+    if (req.query.space)    filter.space    = req.query.space;
 
     const tasks = await populateTask(Task.find(filter)).sort({ status: 1, order: 1, createdAt: -1 });
 
@@ -253,6 +255,22 @@ const addComment = async (req, res, next) => {
 
     task.comments.push({ user: req.user._id, text: req.body.text, createdAt: new Date() });
     await task.save();
+
+    // Parse @mentions — find @Name patterns, match against users
+    const mentionPattern = /@([A-Za-z]+(?: [A-Za-z]+)?)/g;
+    const mentionedNames = [];
+    let m;
+    while ((m = mentionPattern.exec(req.body.text || '')) !== null) {
+      mentionedNames.push(m[1].toLowerCase());
+    }
+    if (mentionedNames.length) {
+      const allUsers = await User.find({ isActive: true }).select('_id name');
+      for (const u of allUsers) {
+        if (mentionedNames.some(n => u.name.toLowerCase().includes(n))) {
+          await createNotification(u._id, 'You were mentioned', `${req.user.name} mentioned you in: ${task.title}`, 'task', `/tasks`);
+        }
+      }
+    }
 
     const notifyUsers = [...new Set(
       [...(task.assignedTo || []), task.assignedBy, ...(task.watchers || [])]

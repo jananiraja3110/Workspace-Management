@@ -159,6 +159,25 @@ const AttendancePage = () => {
   const isCheckedIn  = todayStatus?.checkIn && !todayStatus?.checkOut;
   const isCheckedOut = todayStatus?.checkIn && todayStatus?.checkOut;
 
+  const calcMins = (row) => {
+    if (row.totalHours) return Math.round(row.totalHours * 60);
+    if (row.checkIn && row.checkOut) return differenceInMinutes(new Date(row.checkOut), new Date(row.checkIn));
+    return 0;
+  };
+  const fmtHM = (mins) => `${Math.floor(mins / 60)}h ${mins % 60}m`;
+
+  const myStats = (() => {
+    const present = myAttendance.filter(r => r.checkIn);
+    const totalMins = present.reduce((s, r) => s + calcMins(r), 0);
+    return { days: present.length, totalMins, avg: present.length ? Math.round(totalMins / present.length) : 0 };
+  })();
+
+  const teamStats = (() => {
+    const present = teamAttendance.filter(r => r.checkIn);
+    const totalMins = present.reduce((s, r) => s + calcMins(r), 0);
+    return { days: present.length, totalMins, avg: present.length ? Math.round(totalMins / present.length) : 0 };
+  })();
+
   const myColumns = [
     { key: 'date', label: 'Date', render: (val) => val ? format(new Date(val), 'MMM dd, yyyy') : '-' },
     { key: 'checkIn',  label: 'Check In',  render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
@@ -172,6 +191,7 @@ const AttendancePage = () => {
     { key: 'date',     label: 'Date',     render: (val) => val ? format(new Date(val), 'MMM dd, yyyy') : '-' },
     { key: 'checkIn',  label: 'Check In', render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
     { key: 'checkOut', label: 'Check Out', render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
+    { key: 'totalHours', label: 'Total Hours', render: (val, row) => val || formatDuration(row.checkIn, row.checkOut) },
     { key: 'status',  label: 'Status',   render: (val) => <StatusBadge status={val || 'present'} /> },
   ];
 
@@ -281,26 +301,70 @@ const AttendancePage = () => {
 
       {/* Content */}
       {(activeTab === 'my' && !isAdmin) ? (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">My Attendance History</h2>
+        <>
+          {/* My summary stats */}
+          {!loadingMy && myAttendance.length > 0 && (
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: 'Days Present', value: myStats.days, icon: Calendar, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                { label: 'Total Hours', value: fmtHM(myStats.totalMins), icon: Timer, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+                { label: 'Avg / Day', value: fmtHM(myStats.avg), icon: Clock, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              ].map(({ label, value, icon: Icon, color, bg }) => (
+                <div key={label} className={`${bg} rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-center gap-3`}>
+                  <div className={`h-10 w-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                    <Icon className={`h-5 w-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+                    <p className={`text-lg font-bold ${color}`}>{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">My Attendance History</h2>
+            </div>
+            <div className="p-4">
+              <Table columns={myColumns} data={myAttendance} loading={loadingMy} emptyMessage="No attendance records found for this period" />
+            </div>
           </div>
-          <div className="p-4">
-            <Table columns={myColumns} data={myAttendance} loading={loadingMy} emptyMessage="No attendance records found for this period" />
-          </div>
-        </div>
+        </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-              {isAdmin ? 'All Employee Attendance' : 'Team Attendance'}
-            </h2>
-            <span className="text-xs text-slate-400 dark:text-slate-500">{teamAttendance.length} records</span>
+        <>
+          {/* Team summary stats */}
+          {!loadingTeam && teamAttendance.length > 0 && (
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: 'Total Records', value: teamStats.days, icon: Users, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                { label: 'Total Hours', value: fmtHM(teamStats.totalMins), icon: Timer, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+                { label: 'Avg / Day', value: fmtHM(teamStats.avg), icon: Clock, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              ].map(({ label, value, icon: Icon, color, bg }) => (
+                <div key={label} className={`${bg} rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-center gap-3`}>
+                  <div className="h-10 w-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Icon className={`h-5 w-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+                    <p className={`text-lg font-bold ${color}`}>{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                {isAdmin ? 'All Employee Attendance' : 'Team Attendance'}
+              </h2>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{teamAttendance.length} records</span>
+            </div>
+            <div className="p-4">
+              <Table columns={teamColumns} data={teamAttendance} loading={loadingTeam} emptyMessage="No attendance records found" />
+            </div>
           </div>
-          <div className="p-4">
-            <Table columns={teamColumns} data={teamAttendance} loading={loadingTeam} emptyMessage="No attendance records found" />
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

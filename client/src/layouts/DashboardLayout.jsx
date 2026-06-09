@@ -36,12 +36,14 @@ import {
   ScrollText,
   Timer,
   PartyPopper,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { ThemeContext } from '../context/ThemeContext';
 import { SIDEBAR_LINKS } from '../utils/constants';
 import { getInitials } from '../utils/helpers';
 import { SearchTrigger } from '../components/common/GlobalSearch';
+import { useSocket } from '../hooks/useSocket';
 
 const iconMap = {
   LayoutDashboard,
@@ -67,6 +69,7 @@ const iconMap = {
   Settings,
   Timer,
   PartyPopper,
+  Layers,
 };
 
 const DashboardLayout = () => {
@@ -80,6 +83,7 @@ const DashboardLayout = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [londonTime, setLondonTime] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [comingSoonItem, setComingSoonItem] = useState(null);
   const dropdownRef = useRef(null);
 
   // Close dropdown on outside click
@@ -130,6 +134,11 @@ const DashboardLayout = () => {
     const interval = setInterval(fetchUnread, 30000); // refresh every 30s
     return () => clearInterval(interval);
   }, [fetchUnread, location.pathname]);
+
+  // Real-time notifications via socket
+  useSocket(user?._id, () => {
+    setUnreadCount(prev => prev + 1);
+  });
 
   const handleLogout = () => {
     logout();
@@ -187,6 +196,24 @@ const DashboardLayout = () => {
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = iconMap[item.icon] || LayoutDashboard;
+                if (item.comingSoon) {
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => setComingSoonItem(item.name)}
+                      className={`sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 group text-indigo-200/60 hover:bg-white/8 hover:text-white w-full ${collapsed ? 'justify-center px-2' : ''}`}
+                      title={collapsed ? item.name : undefined}
+                    >
+                      <Icon className="w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                      {!collapsed && (
+                        <span className="flex-1 text-left">{item.name}</span>
+                      )}
+                      {!collapsed && (
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-indigo-500/30 text-indigo-300 font-semibold tracking-wide">SOON</span>
+                      )}
+                    </button>
+                  );
+                }
                 return (
                   <NavLink
                     key={item.path}
@@ -347,8 +374,12 @@ const DashboardLayout = () => {
                   className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <div className="avatar-ring">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800 shadow-sm">
-                      <span className="text-white text-xs font-semibold">{initials}</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-800 shadow-sm overflow-hidden">
+                      {user?.avatar ? (
+                        <img src={user.avatar} className="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800 shadow-sm" alt={user.name} />
+                      ) : (
+                        <span className="text-white text-xs font-semibold">{initials}</span>
+                      )}
                     </div>
                   </div>
                   <div className="hidden sm:block text-left min-w-0">
@@ -411,6 +442,27 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Coming Soon Modal */}
+      {comingSoonItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setComingSoonItem(null)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+            <div className="w-16 h-16 mx-auto mb-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">
+              <span className="text-3xl">🚀</span>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">{comingSoonItem}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">This feature is coming soon!</p>
+            <p className="text-slate-400 dark:text-slate-500 text-xs mb-6">We're working hard to bring you this feature. Stay tuned for updates.</p>
+            <button
+              onClick={() => setComingSoonItem(null)}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ const { sendEmail } = require('../utils/sendEmail');
 const { welcomeEmail } = require('../utils/emailTemplates');
 const { createNotification } = require('../utils/createNotification');
 const { logActivity } = require('../utils/logActivity');
+const upload = require('../middleware/upload');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -223,6 +224,43 @@ const getTeam = async (req, res, next) => {
   }
 };
 
+// @desc    Upload user avatar
+// @route   PUT /api/users/:id/avatar
+// @access  Owner or Admin
+const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400);
+      return next(new Error('No file uploaded'));
+    }
+
+    const isOwner = req.user._id.toString() === req.params.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      res.status(403);
+      return next(new Error('Not authorized to update this avatar'));
+    }
+
+    const user = await User.findById(req.params.id).select('-password');
+
+    if (!user) {
+      res.status(404);
+      return next(new Error('User not found'));
+    }
+
+    user.avatar = `/uploads/${req.file.filename}`;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   getUserById,
@@ -230,4 +268,5 @@ module.exports = {
   updateUser,
   deleteUser,
   getTeam,
+  updateAvatar,
 };

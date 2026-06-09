@@ -12,6 +12,7 @@ import {
   MoreHorizontal, Eye, EyeOff, CheckSquare, Square,
   Timer, ChevronDown, ChevronRight, Bold, Italic,
   Link as LinkIcon, Minus, Check, Paperclip, Download, File, FileDown,
+  RefreshCw,
 } from 'lucide-react';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
@@ -120,7 +121,7 @@ const RichText = ({ text }) => {
   );
 };
 
-const EMPTY_FORM = { title: '', description: '', assignedTo: [], priority: 'medium', status: 'pending', dueDate: '', timeEstimate: '' };
+const EMPTY_FORM = { title: '', description: '', assignedTo: [], priority: 'medium', status: 'pending', dueDate: '', timeEstimate: '', space: '', recurring: 'none' };
 
 // ── Main Component ──────────────────────────────────────────────────
 const TasksPage = () => {
@@ -129,11 +130,16 @@ const TasksPage = () => {
 
   const [tasks, setTasks]       = useState([]);
   const [users, setUsers]       = useState([]);
+  const [spaces, setSpaces]     = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [spaceFilter, setSpaceFilter]       = useState('');
   const [viewMode, setViewMode] = useState('board');
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkAction, setBulkAction] = useState('');
 
   const [showModal, setShowModal]       = useState(false);
   const [editingTask, setEditingTask]   = useState(null);
@@ -146,6 +152,8 @@ const TasksPage = () => {
   // Detail panel state
   const [comment, setComment]               = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [mentionSuggestions, setMentionSuggestions] = useState([]);
+  const [mentionQuery, setMentionQuery]     = useState('');
   const [newSubtask, setNewSubtask]         = useState('');
   const [showTimeLog, setShowTimeLog]       = useState(false);
   const [timeInput, setTimeInput]           = useState('');
@@ -185,6 +193,7 @@ const TasksPage = () => {
   useEffect(() => {
     fetchTasks();
     API.get('/users').then(({ data }) => setUsers(data.users || data)).catch(() => {});
+    API.get('/spaces').then(({ data }) => setSpaces(data.spaces || [])).catch(() => {});
   }, [fetchTasks]);
 
   useEffect(() => {
@@ -220,10 +229,54 @@ const TasksPage = () => {
     const matchSearch   = !search || t.title?.toLowerCase().includes(search.toLowerCase());
     const assignees     = Array.isArray(t.assignedTo) ? t.assignedTo : [t.assignedTo];
     const matchAssignee = !assigneeFilter || assignees.some(a => (a?._id || a) === assigneeFilter);
-    return matchPriority && matchSearch && matchAssignee;
+    const matchSpace    = !spaceFilter || (t.space?._id || t.space) === spaceFilter;
+    return matchPriority && matchSearch && matchAssignee && matchSpace;
   });
 
   const getColTasks = (colId) => filtered.filter(t => t.status === colId);
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedIds(new Set(filtered.map(t => t._id)));
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const count = ids.length;
+    if (bulkAction === 'delete') {
+      if (!window.confirm(`Delete ${count} task(s)? This cannot be undone.`)) return;
+      for (const id of ids) {
+        try { await API.delete(`/tasks/${id}`); } catch {}
+      }
+      setTasks(prev => prev.filter(t => !selectedIds.has(t._id)));
+    } else if (bulkAction === 'complete') {
+      for (const id of ids) {
+        try {
+          const { data } = await API.put(`/tasks/${id}`, { status: 'completed' });
+          setTasks(prev => prev.map(t => t._id === id ? data.task : t));
+        } catch {}
+      }
+    } else if (bulkAction.startsWith('space:')) {
+      const spaceId = bulkAction.slice(6);
+      for (const id of ids) {
+        try {
+          const { data } = await API.put(`/tasks/${id}`, { space: spaceId });
+          setTasks(prev => prev.map(t => t._id === id ? data.task : t));
+        } catch {}
+      }
+    }
+    clearSelection();
+    setBulkAction('');
+    toast.success(`Done: ${count} tasks updated`);
+  };
 
   const handleExportCSV = () => {
     const rows = [
@@ -271,6 +324,8 @@ const TasksPage = () => {
       status:       task.status || 'pending',
       dueDate:      task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
       timeEstimate: task.timeEstimate || '',
+      space:        task.space?._id || task.space || '',
+      recurring:    task.recurring || 'none',
     });
     setShowModal(true);
   };
@@ -785,10 +840,40 @@ const TasksPage = () => {
                 <div className="flex gap-3 items-end">
                   <Avatar name={user?.name || 'U'} size="md" color="bg-indigo-600" />
                   <div className="flex-1 flex gap-2">
-                    <textarea rows={2} placeholder="Write a comment..."
-                      value={comment} onChange={e => setComment(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
-                      className="flex-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none transition" />
+                    <div className="flex-1 relative">
+                      <textarea rows={2} placeholder="Write a comment… use @name to mention someone"
+                        value={comment} onChange={e => {
+                          setComment(e.target.value);
+                          const val = e.target.value;
+                          const atIdx = val.lastIndexOf('@');
+                          if (atIdx !== -1 && atIdx === val.length - 1 || (atIdx !== -1 && !val.slice(atIdx + 1).includes(' '))) {
+                            const q = val.slice(atIdx + 1).toLowerCase();
+                            setMentionQuery(q);
+                            setMentionSuggestions(users.filter(u => u.name.toLowerCase().includes(q)).slice(0, 5));
+                          } else {
+                            setMentionSuggestions([]);
+                          }
+                        }}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none transition" />
+                      {mentionSuggestions.length > 0 && (
+                        <div className="absolute bottom-full left-0 mb-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden">
+                          {mentionSuggestions.map(u => (
+                            <button key={u._id} type="button"
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                const atIdx = comment.lastIndexOf('@');
+                                setComment(comment.slice(0, atIdx) + `@${u.name} `);
+                                setMentionSuggestions([]);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200">
+                              <Avatar name={u.name} size="sm" />
+                              {u.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button onClick={handleAddComment} disabled={commentSubmitting || !comment.trim()}
                       className="self-end p-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
                       <Send className="h-4 w-4" />
@@ -862,10 +947,15 @@ const TasksPage = () => {
               <tr key={task._id} onClick={() => { setSelectedTask(task); setActiveTab('details'); setEditingTitle(false); setEditingDescription(false); setShowAssigneePicker(false); }}
                 className="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-slate-900 dark:text-slate-100">{task.title}</div>
-                  {task.subtasks?.length > 0 && (
-                    <div className="text-xs text-slate-400 mt-0.5">{task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks</div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={selectedIds.has(task._id)} onChange={() => toggleSelect(task._id)} onClick={e => e.stopPropagation()} className="w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer flex-shrink-0" />
+                    <div>
+                      <div className="font-medium text-slate-900 dark:text-slate-100">{task.title}</div>
+                      {task.subtasks?.length > 0 && (
+                        <div className="text-xs text-slate-400 mt-0.5">{task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks</div>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
@@ -948,6 +1038,8 @@ const TasksPage = () => {
                   showStatusDot={showStatusDot}
                   setShowStatusDot={setShowStatusDot}
                   statusDropRef={statusDropRef}
+                  isSelected={selectedIds.has(task._id)}
+                  onToggleSelect={toggleSelect}
                 />
               ))}
               {isAdminOrHR && (
@@ -1001,6 +1093,13 @@ const TasksPage = () => {
             <option value="">All Assignees</option>
             {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
           </select>
+          {spaces.length > 0 && (
+            <select value={spaceFilter} onChange={e => setSpaceFilter(e.target.value)}
+              className="text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="">All Spaces</option>
+              {spaces.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+            </select>
+          )}
         </div>
         <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1 gap-0.5">
           {[['board', LayoutGrid, 'Board'], ['list', List, 'List']].map(([mode, Icon, label]) => (
@@ -1011,6 +1110,22 @@ const TasksPage = () => {
           ))}
         </div>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl">
+          <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">{selectedIds.size} selected</span>
+          <select value={bulkAction} onChange={e => setBulkAction(e.target.value)}
+            className="text-sm rounded-lg border border-indigo-200 dark:border-indigo-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5">
+            <option value="">Bulk action…</option>
+            <option value="complete">Mark Complete</option>
+            <option value="delete">Delete</option>
+            {spaces.map(s => <option key={s._id} value={`space:${s._id}`}>Move to: {s.name}</option>)}
+          </select>
+          <button onClick={handleBulkAction} disabled={!bulkAction}
+            className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors">Apply</button>
+          <button onClick={clearSelection} className="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Clear</button>
+        </div>
+      )}
 
       {/* Main layout: board + side panel */}
       <div className="flex h-[calc(100vh-130px)] gap-0">
@@ -1034,7 +1149,7 @@ const TasksPage = () => {
 };
 
 // ── Task Card ─────────────────────────────────────────────────────
-const TaskCard = ({ task, col, idx, isAdminOrHR, getAssigneeNames, onDragStart, onDragOver, onSelect, onEdit, onDelete, onStatusChange, openMenuId, setOpenMenuId, showStatusDot, setShowStatusDot, statusDropRef }) => {
+const TaskCard = ({ task, col, idx, isAdminOrHR, getAssigneeNames, onDragStart, onDragOver, onSelect, onEdit, onDelete, onStatusChange, openMenuId, setOpenMenuId, showStatusDot, setShowStatusDot, statusDropRef, isSelected, onToggleSelect }) => {
   const isMenuOpen = openMenuId === task._id;
   const isStatusOpen = showStatusDot === task._id;
   const pcfg = PRIORITY_CFG[task.priority] || PRIORITY_CFG.medium;
@@ -1059,6 +1174,7 @@ const TaskCard = ({ task, col, idx, isAdminOrHR, getAssigneeNames, onDragStart, 
       {/* Top row: status dot + drag + title + menu */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(task._id)} onClick={e => e.stopPropagation()} className="w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer flex-shrink-0" />
           {/* Quick status dot */}
           <div className="relative flex-shrink-0" ref={isStatusOpen ? statusDropRef : null} onClick={e => e.stopPropagation()}>
             <button onClick={e => { e.stopPropagation(); setShowStatusDot(isStatusOpen ? null : task._id); }}
@@ -1156,6 +1272,12 @@ const TaskCard = ({ task, col, idx, isAdminOrHR, getAssigneeNames, onDragStart, 
                 <Timer className="h-3 w-3" />{fmtMins(task.timeSpent)}
               </span>
             )}
+            {task.space?.name && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: (task.space.color || '#6366F1') + '20', color: task.space.color || '#6366F1' }}>
+                {task.space.name}
+              </span>
+            )}
+            {task.recurring && task.recurring !== 'none' && <span className="inline-flex items-center gap-0.5 text-[10px] text-indigo-500 dark:text-indigo-400"><RefreshCw className="h-2.5 w-2.5" />{task.recurring}</span>}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {task.dueDate && (
@@ -1255,6 +1377,16 @@ const TaskModal = ({ isOpen, onClose, editingTask, form, setForm, onSubmit, subm
                 })}
               </div>
             </div>
+            {spaces.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Space</label>
+                <select value={form.space} onChange={e => setForm({ ...form, space: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                  <option value="">No Space</option>
+                  {spaces.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Due Date</label>
@@ -1267,6 +1399,16 @@ const TaskModal = ({ isOpen, onClose, editingTask, form, setForm, onSubmit, subm
                   onChange={e => setForm({ ...form, timeEstimate: e.target.value })}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Recurring</label>
+              <select value={form.recurring} onChange={e => setForm({ ...form, recurring: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <option value="none">No Repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
             </div>
           </div>
           <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">

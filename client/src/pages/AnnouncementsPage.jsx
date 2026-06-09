@@ -95,6 +95,17 @@ const AnnouncementsPage = () => {
     }
   };
 
+  const EMOJIS = ['👍', '❤️', '😂', '🎉', '😮'];
+
+  const handleReact = async (annId, emoji) => {
+    try {
+      const { data } = await API.patch(`/announcements/${annId}/react`, { emoji });
+      setAnnouncements(prev => prev.map(a => a._id === annId ? data.announcement : a));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to react');
+    }
+  };
+
   const sorted = [...announcements].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
@@ -155,6 +166,26 @@ const AnnouncementsPage = () => {
                       <Clock className="w-3 h-3" />
                       {ann.createdAt ? format(new Date(ann.createdAt), 'MMM dd, yyyy hh:mm a') : ''}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    {EMOJIS.map(emoji => {
+                      const reaction = (ann.reactions || []).find(r => r.emoji === emoji);
+                      const count = reaction?.users?.length || 0;
+                      const reacted = reaction?.users?.some(u => (u._id || u)?.toString() === user?._id?.toString());
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReact(ann._id, emoji)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition
+                            ${reacted
+                              ? 'bg-indigo-100 border-indigo-400 dark:bg-indigo-900/40 dark:border-indigo-500'
+                              : 'bg-slate-100 border-slate-200 dark:bg-slate-700 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600'
+                            }`}
+                        >
+                          {emoji}{count > 0 && <span className="text-xs text-slate-600 dark:text-slate-300">{count}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 {isAdmin && (

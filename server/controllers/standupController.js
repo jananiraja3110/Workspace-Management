@@ -24,6 +24,11 @@ const submitStandup = async (req, res, next) => {
       date: today,
       today: req.body.today,
       blockers: req.body.blockers,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      hoursWorked: req.body.hoursWorked,
+      tasksWorked: req.body.tasksWorked,
+      status: req.body.status || 'in-progress',
     });
 
     res.status(201).json({
@@ -142,6 +147,11 @@ const updateStandup = async (req, res, next) => {
 
     standup.today = req.body.today || standup.today;
     standup.blockers = req.body.blockers !== undefined ? req.body.blockers : standup.blockers;
+    if (req.body.startTime !== undefined) standup.startTime = req.body.startTime;
+    if (req.body.endTime !== undefined) standup.endTime = req.body.endTime;
+    if (req.body.hoursWorked !== undefined) standup.hoursWorked = req.body.hoursWorked;
+    if (req.body.tasksWorked !== undefined) standup.tasksWorked = req.body.tasksWorked;
+    if (req.body.status !== undefined) standup.status = req.body.status;
 
     await standup.save();
 
