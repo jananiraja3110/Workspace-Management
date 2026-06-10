@@ -54,48 +54,105 @@ function Avatar({ name, size = 6 }) {
   );
 }
 
-// ── StatusSelect / PrioritySelect / AssigneeSelect ────────────────────────────
+// ── Custom dropdown (colored options) ────────────────────────────────────────
+
+function Dropdown({ trigger, children, disabled }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative inline-flex" onClick={e => e.stopPropagation()}>
+      <button type="button" disabled={disabled} onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        className="focus:outline-none">
+        {trigger}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 min-w-[130px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg py-1"
+          onClick={e => e.stopPropagation()}>
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatusSelect({ value, onChange, disabled }) {
   const sc = stCfg(value);
   return (
-    <div className="relative inline-flex items-center">
-      <span className={`absolute left-2.5 w-2 h-2 rounded-full pointer-events-none ${sc.dot}`}/>
-      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-        onClick={e => e.stopPropagation()}
-        className="pl-6 pr-2 py-1 text-xs font-medium rounded-full border border-transparent bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none">
-        {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-      </select>
-    </div>
+    <Dropdown disabled={disabled} trigger={
+      <span className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.dot}`}/>
+        {sc.label}
+      </span>
+    }>
+      {(close) => STATUSES.map(s => {
+        const cfg = stCfg(s.id);
+        return (
+          <button key={s.id} onClick={() => { onChange(s.id); close(); }}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${s.id === value ? 'font-semibold' : ''}`}>
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`}/>
+            <span className="text-slate-700 dark:text-slate-200">{s.label}</span>
+          </button>
+        );
+      })}
+    </Dropdown>
   );
 }
 
 function PrioritySelect({ value, onChange, disabled }) {
   const pc = priCfg(value);
   return (
-    <div className="relative inline-flex items-center">
-      <Flag className="absolute left-2 w-3 h-3 pointer-events-none" style={{ fill: pc.hex, color: pc.hex }}/>
-      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-        onClick={e => e.stopPropagation()}
-        className={`pl-6 pr-2 py-1 text-xs font-medium rounded-full border border-transparent bg-slate-100 dark:bg-slate-700/60 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none ${pc.text}`}>
-        {PRIORITIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-      </select>
-    </div>
+    <Dropdown disabled={disabled} trigger={
+      <span className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+        style={{ color: pc.hex }}>
+        <Flag className="w-3 h-3 flex-shrink-0" style={{ fill: pc.hex, color: pc.hex }}/>
+        {pc.label}
+      </span>
+    }>
+      {(close) => PRIORITIES.map(p => (
+        <button key={p.id} onClick={() => { onChange(p.id); close(); }}
+          className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${p.id === value ? 'font-semibold' : ''}`}>
+          <Flag className="w-3 h-3 flex-shrink-0" style={{ fill: p.hex, color: p.hex }}/>
+          <span style={{ color: p.hex }}>{p.label}</span>
+        </button>
+      ))}
+    </Dropdown>
   );
 }
 
 function AssigneeSelect({ value, users, onChange, disabled }) {
   const curId = value && typeof value === 'object' ? (value._id || '') : (value || '');
+  const cur = users.find(u => u._id === curId);
   return (
-    <div className="relative inline-flex items-center">
-      <User className="absolute left-2 w-3 h-3 pointer-events-none text-slate-400"/>
-      <select value={curId} onChange={e => onChange(e.target.value || null)} disabled={disabled}
-        onClick={e => e.stopPropagation()}
-        className="pl-6 pr-2 py-1 text-xs font-medium rounded-full border border-transparent bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none">
-        <option value="">Unassigned</option>
-        {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-      </select>
-    </div>
+    <Dropdown disabled={disabled} trigger={
+      <span className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+        <User className="w-3 h-3 flex-shrink-0 text-slate-400"/>
+        {cur ? cur.name : 'Assign'}
+      </span>
+    }>
+      {(close) => (
+        <>
+          <button onClick={() => { onChange(null); close(); }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <User className="w-3 h-3"/> Unassigned
+          </button>
+          {users.map(u => (
+            <button key={u._id} onClick={() => { onChange(u._id); close(); }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${u._id === curId ? 'font-semibold' : ''}`}>
+              <div className="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-white flex-shrink-0" style={{ fontSize: 8 }}>
+                {u.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-slate-700 dark:text-slate-200 truncate">{u.name}</span>
+            </button>
+          ))}
+        </>
+      )}
+    </Dropdown>
   );
 }
 
@@ -347,11 +404,28 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
 
         {activeTab === 'attachments' && (
           <div className="space-y-2">
+            <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-xs text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-500 cursor-pointer transition-colors">
+              <Paperclip className="w-3.5 h-3.5 flex-shrink-0"/>
+              <span>Attach a file</span>
+              <input type="file" className="hidden" onChange={async e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const fd = new FormData();
+                fd.append('file', file);
+                try {
+                  const { data } = await API.post(`/tasks/${t._id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                  onUpdate(t._id, null, data.task);
+                  toast.success('File attached');
+                } catch (err) { toast.error(err?.response?.data?.message || 'Upload failed'); }
+                e.target.value = '';
+              }}/>
+            </label>
             {t.attachments?.length === 0 && <p className="text-xs text-slate-400 italic px-1">No files attached</p>}
             {t.attachments?.map(a => (
               <div key={a._id} className="flex items-center gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
                 <File className="w-4 h-4 text-slate-400 flex-shrink-0"/>
                 <span className="flex-1 text-xs text-slate-700 dark:text-slate-300 truncate">{a.name}</span>
+                <span className="text-[10px] text-slate-400 flex-shrink-0">{a.size ? (a.size / 1024).toFixed(0) + ' KB' : ''}</span>
                 <a href={a.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-500 transition-colors">
                   <Download className="w-3.5 h-3.5"/>
                 </a>
@@ -686,7 +760,10 @@ export default function TasksPage() {
   const [priFilter, setPriFilter]   = useState('');
   const [myTasksOnly, setMyTasks]   = useState(false);
 
-  const isAdminOrHR = true;
+  const isAdminOrHR = user?.role === 'admin' || user?.role === 'hr';
+
+  // Read ?taskId= from URL (from global search)
+  const openTaskId = new URLSearchParams(window.location.search).get('taskId');
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -702,6 +779,13 @@ export default function TasksPage() {
   }, []);
 
   useEffect(() => { fetchAll(); setSelected(null); setSelectedIds(new Set()); }, [fetchAll]);
+
+  // Auto-open task panel when navigated from search
+  useEffect(() => {
+    if (!openTaskId || loading || !tasks.length) return;
+    const t = tasks.find(x => x._id === openTaskId);
+    if (t) setSelected(t);
+  }, [openTaskId, loading, tasks]);
 
   async function handleUpdate(taskId, patch, fullTask, isNew) {
     if (fullTask) {
@@ -806,9 +890,11 @@ export default function TasksPage() {
           {STATUSES.map(s => (
             <button key={s.id} onClick={async () => {
               const ids = [...selectedIds];
-              await Promise.all(ids.map(tid => API.put(`/tasks/${tid}`, { status: s.id })));
-              setTasks(prev => prev.map(t => ids.includes(t._id) ? { ...t, status: s.id } : t));
-              setSelectedIds(new Set());
+              try {
+                await Promise.all(ids.map(tid => API.put(`/tasks/${tid}`, { status: s.id })));
+                setTasks(prev => prev.map(t => ids.includes(t._id) ? { ...t, status: s.id } : t));
+                setSelectedIds(new Set());
+              } catch (err) { toast.error(err?.response?.data?.message || 'Bulk update failed'); }
             }} className="flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-400 transition-colors">
               <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}/>{s.label}
             </button>

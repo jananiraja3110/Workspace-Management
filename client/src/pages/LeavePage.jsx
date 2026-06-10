@@ -133,7 +133,7 @@ const LeavePage = () => {
   const handleReview = async (leaveId, action) => {
     setProcessingId(leaveId);
     try {
-      await API.put(`/leave/${leaveId}/review`, {
+      await API.put(`/leaves/${leaveId}/review`, {
         status: action,
         note: reviewNote,
       });

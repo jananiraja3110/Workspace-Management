@@ -9,7 +9,6 @@ import LoginPage from '../pages/LoginPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import DashboardPage from '../pages/DashboardPage';
-import ProjectsPage from '../pages/ProjectsPage';
 import TasksPage from '../pages/TasksPage';
 import MessagesPage from '../pages/MessagesPage';
 import AttendancePage from '../pages/AttendancePage';
@@ -61,7 +60,6 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/announcements" element={<AnnouncementsPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/standups" element={<StandupsPage />} />

@@ -39,8 +39,7 @@ export const SIDEBAR_LINKS = [
   ]},
   { section: 'Work', items: [
     { name: 'Tasks', path: '/tasks', icon: 'CheckSquare', roles: ['admin', 'hr', 'developer'] },
-    { name: 'Projects', path: '/projects', icon: 'FolderKanban', roles: ['admin', 'hr', 'developer'] },
-    { name: 'Timesheet', path: '/timesheet', icon: 'Timer', roles: ['admin', 'hr', 'developer'] },
+{ name: 'Timesheet', path: '/timesheet', icon: 'Timer', roles: ['admin', 'hr', 'developer'] },
     { name: 'Messages', path: '/messages', icon: 'MessageSquare', roles: ['admin', 'hr', 'developer'] },
     { name: 'Daily Progress', path: '/standups', icon: 'ClipboardList', roles: ['admin', 'hr', 'developer'] },
     { name: 'Attendance', path: '/attendance', icon: 'Clock', roles: ['admin', 'hr', 'developer'] },

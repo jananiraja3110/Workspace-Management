@@ -87,7 +87,7 @@ const AnnouncementsPage = () => {
 
   const togglePin = async (id, currentPinned) => {
     try {
-      await API.put(`/announcements/${id}`, { pinned: !currentPinned });
+      await API.patch(`/announcements/${id}/pin`);
       toast.success(currentPinned ? 'Unpinned' : 'Pinned');
       fetchAnnouncements();
     } catch (err) {

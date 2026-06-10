@@ -98,7 +98,7 @@ const ReviewsPage = () => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      await API.put(`/reviews/${selfForm.reviewId}/self-assessment`, selfForm);
+      await API.put(`/reviews/${selfForm.review}/self-assessment`, selfForm);
       toast.success('Self-assessment submitted');
       setShowSelfAssessment(false);
       fetchReviews();

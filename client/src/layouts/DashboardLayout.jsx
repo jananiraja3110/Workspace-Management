@@ -16,16 +16,12 @@ import {
   PanelLeft,
   LayoutDashboard,
   Megaphone,
-  FolderKanban,
   CheckSquare,
   MessageSquare,
   ClipboardList,
   Clock,
   CalendarOff,
   Calendar,
-  Receipt,
-  Wallet,
-  Star,
   FileText,
   DoorOpen,
   LifeBuoy,
@@ -36,7 +32,6 @@ import {
   ScrollText,
   Timer,
   PartyPopper,
-  Layers,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { ThemeContext } from '../context/ThemeContext';
@@ -49,16 +44,12 @@ import SpaceTree from '../components/layout/SpaceTree';
 const iconMap = {
   LayoutDashboard,
   Megaphone,
-  FolderKanban,
   CheckSquare,
   MessageSquare,
   ClipboardList,
   Clock,
   CalendarOff,
   Calendar,
-  Receipt,
-  Wallet,
-  Star,
   FileText,
   DoorOpen,
   LifeBuoy,
@@ -70,7 +61,6 @@ const iconMap = {
   Settings,
   Timer,
   PartyPopper,
-  Layers,
 };
 
 const DashboardLayout = () => {

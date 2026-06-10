@@ -5,8 +5,14 @@ const Task = require('../models/Task');
 const ActivityLog = require('../models/ActivityLog');
 const Expense = require('../models/Expense');
 
-// Helper: get today's date at midnight
+// Helper: get today's date range (start and end of day in UTC)
 const getTodayDate = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return { start, end };
+};
+const getTodayMidnight = () => {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 };
@@ -18,13 +24,11 @@ const getStats = async (req, res, next) => {
   try {
     const { role, _id } = req.user;
     const today = getTodayDate();
+    const todayMidnight = getTodayMidnight();
 
     if (role === 'admin') {
       // Total employees and managers
-      const totalEmployees = await User.countDocuments({
-        role: 'developer',
-        isActive: true,
-      });
+      const totalEmployees = await User.countDocuments({ isActive: true });
       const totalManagers = await User.countDocuments({
         role: 'hr',
         isActive: true,
@@ -33,7 +37,7 @@ const getStats = async (req, res, next) => {
       // Today's attendance
       const totalActiveUsers = await User.countDocuments({ isActive: true });
       const todayAttendanceCount = await Attendance.countDocuments({
-        date: today,
+        date: { $gte: today.start, $lt: today.end },
       });
       const todayAttendancePercent =
         totalActiveUsers > 0
@@ -48,7 +52,7 @@ const getStats = async (req, res, next) => {
       // Overdue tasks
       const overdueTasks = await Task.countDocuments({
         status: { $in: ['pending', 'in-progress'] },
-        dueDate: { $lt: today },
+        dueDate: { $lt: today.start },
       });
 
       // Task stats breakdown
@@ -94,7 +98,7 @@ const getStats = async (req, res, next) => {
       // Team attendance today
       const teamAttendanceToday = await Attendance.countDocuments({
         user: { $in: teamIds },
-        date: today,
+        date: { $gte: today.start, $lt: today.end },
       });
 
       // Pending leaves for my team
@@ -140,7 +144,7 @@ const getStats = async (req, res, next) => {
     // Today's attendance
     const todayAttendance = await Attendance.findOne({
       user: _id,
-      date: today,
+      date: { $gte: today.start, $lt: today.end },
     });
 
     // Pending tasks
@@ -150,13 +154,13 @@ const getStats = async (req, res, next) => {
     });
 
     // Upcoming deadlines (next 7 days)
-    const sevenDaysLater = new Date(today);
+    const sevenDaysLater = new Date(today.start);
     sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
     const upcomingDeadlines = await Task.find({
       assignedTo: _id,
       status: { $in: ['pending', 'in-progress'] },
-      dueDate: { $gte: today, $lte: sevenDaysLater },
+      dueDate: { $gte: today.start, $lte: sevenDaysLater },
     })
       .populate('project', 'name')
       .sort({ dueDate: 1 });
