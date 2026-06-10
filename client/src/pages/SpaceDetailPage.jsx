@@ -117,6 +117,7 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
   const t = task;
   const sc = stCfg(t.status);
   const assignees = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+  const panelAssigneeId = assignees[0] && typeof assignees[0] === 'object' ? assignees[0]._id : (assignees[0] || '');
   const isWatching = t.watchers?.some(w => (w?._id || w) === user?._id);
   const subtasksDone  = t.subtasks?.filter(s => s.completed).length || 0;
   const subtasksTotal = t.subtasks?.length || 0;
@@ -235,7 +236,7 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">Assignees</span>
                 <AssigneeSelect
-                  value={assignees[0]?._id || assignees[0] || ''}
+                  value={panelAssigneeId}
                   users={users}
                   onChange={v => onUpdate(t._id, { assignedTo: v ? [v] : [] })}
                   disabled={!isAdminOrHR}
@@ -394,6 +395,7 @@ function TaskRow({ task, users, onUpdate, onDelete, onOpen, isSelected, onToggle
   const sc = stCfg(task.status);
   const pc = priCfg(task.priority);
   const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []);
+  const assigneeId = assignees[0] && typeof assignees[0] === 'object' ? assignees[0]._id : (assignees[0] || '');
   const dueDiff = task.dueDate ? differenceInDays(new Date(task.dueDate), new Date()) : null;
   const dueColor = dueDiff === null ? 'text-slate-400' : dueDiff < 0 ? 'text-red-500' : dueDiff === 0 ? 'text-orange-500' : dueDiff <= 2 ? 'text-yellow-500' : 'text-slate-400';
 
@@ -413,6 +415,7 @@ function TaskRow({ task, users, onUpdate, onDelete, onOpen, isSelected, onToggle
 
       {/* Title */}
       <input
+        key={task._id + '_' + task.title}
         defaultValue={task.title}
         onClick={e => e.stopPropagation()}
         onBlur={e => { const v = e.target.value.trim(); if (v && v !== task.title) onUpdate(task._id, { title: v }); else e.target.value = task.title; }}
@@ -439,7 +442,7 @@ function TaskRow({ task, users, onUpdate, onDelete, onOpen, isSelected, onToggle
       {/* Assignee */}
       <div onClick={e => e.stopPropagation()}>
         <AssigneeSelect
-          value={assignees[0]?._id || assignees[0] || ''}
+          value={assigneeId}
           users={users}
           onChange={v => onUpdate(task._id, { assignedTo: v ? [v] : [] })}
         />
@@ -548,8 +551,8 @@ function BoardCard({ task, users, onUpdate, onDelete, onOpen, overlay }) {
   } = useSortable({ id: task._id, data: { type: 'task' } });
 
   const sc = stCfg(task.status);
-  const pc = priCfg(task.priority);
   const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []);
+  const assigneeId = assignees[0] && typeof assignees[0] === 'object' ? assignees[0]._id : (assignees[0] || '');
   const downPos = useRef(null);
 
   return (
@@ -577,7 +580,7 @@ function BoardCard({ task, users, onUpdate, onDelete, onOpen, overlay }) {
         onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
         <PrioritySelect value={task.priority} onChange={v => onUpdate(task._id, { priority: v })}/>
         <AssigneeSelect
-          value={assignees[0]?._id || assignees[0] || ''}
+          value={assigneeId}
           users={users}
           onChange={v => onUpdate(task._id, { assignedTo: v ? [v] : [] })}
         />
@@ -916,12 +919,13 @@ export default function SpaceDetailPage() {
         {/* Side panel */}
         {selectedTask && (
           <TaskPanel
+            key={selectedTask._id}
             task={selectedTask}
             users={users}
             isAdminOrHR={isAdminOrHR}
             user={user}
             onUpdate={handleUpdate}
-            onDelete={taskId => { handleDelete(taskId); }}
+            onDelete={handleDelete}
             onClose={() => setSelected(null)}
           />
         )}
