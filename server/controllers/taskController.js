@@ -1,3 +1,4 @@
+const path = require('path');
 const Task = require('../models/Task');
 const User = require('../models/User');
 const TimeEntry = require('../models/TimeEntry');
@@ -37,9 +38,16 @@ const getTasks = async (req, res, next) => {
     if (req.query.project)  filter.project  = req.query.project;
     if (req.query.space)    filter.space    = req.query.space;
 
-    const tasks = await populateTask(Task.find(filter)).sort({ status: 1, order: 1, createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
 
-    res.status(200).json({ success: true, count: tasks.length, tasks });
+    const [tasks, total] = await Promise.all([
+      populateTask(Task.find(filter)).sort({ status: 1, order: 1, createdAt: -1 }).limit(limit).skip(skip),
+      Task.countDocuments(filter),
+    ]);
+
+    res.status(200).json({ success: true, tasks, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     next(error);
   }
@@ -76,13 +84,14 @@ const createTask = async (req, res, next) => {
 
     // Notify all assignees
     if (task.assignedTo?.length) {
-      for (const uid of task.assignedTo) {
-        await createNotification(uid, 'New Task Assigned', `You have been assigned: ${task.title}`, 'task', `/tasks`);
-        const assignee = await User.findById(uid);
-        if (assignee) {
-          sendEmail(assignee.email, 'New Task Assigned - AD Workspace', taskAssignedEmail(assignee.name, task.title, req.user.name))
-            .catch((err) => console.error('Task email failed:', err.message));
-        }
+      await Promise.all(task.assignedTo.map(uid =>
+        createNotification(uid, 'New Task Assigned', `You have been assigned: ${task.title}`, 'task', `/tasks`)
+      ));
+      const assigneeIds = task.assignedTo.map(a => a._id || a);
+      const assignees = await User.find({ _id: { $in: assigneeIds } }).select('name email');
+      for (const assignee of assignees) {
+        sendEmail(assignee.email, 'New Task Assigned - AD Workspace', taskAssignedEmail(assignee.name, task.title, req.user.name))
+          .catch((err) => console.error('Task email failed:', err.message));
       }
     }
 
@@ -100,17 +109,21 @@ const createTask = async (req, res, next) => {
 // @access  Admin, HR (or assignee for status)
 const updateTask = async (req, res, next) => {
   try {
-    if (!req.body.assignedTo) {
+    const allowed = ['title', 'description', 'status', 'priority', 'startDate', 'dueDate', 'assignedTo', 'space', 'timeEstimate', 'order'];
+    const updates = {};
+    allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
+
+    if (!updates.assignedTo) {
       // leave unchanged
-    } else if (!Array.isArray(req.body.assignedTo)) {
-      req.body.assignedTo = [req.body.assignedTo];
+    } else if (!Array.isArray(updates.assignedTo)) {
+      updates.assignedTo = [updates.assignedTo];
     }
-    if (Array.isArray(req.body.assignedTo)) {
-      req.body.assignedTo = req.body.assignedTo.filter(id => id && id !== '');
+    if (Array.isArray(updates.assignedTo)) {
+      updates.assignedTo = updates.assignedTo.filter(id => id && id !== '');
     }
 
     const task = await populateTask(
-      Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+      Task.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
     );
 
     if (!task) { res.status(404); return next(new Error('Task not found')); }
@@ -130,6 +143,10 @@ const reorderTasks = async (req, res, next) => {
   try {
     const { updates } = req.body; // [{ id, status, order }]
     if (!updates?.length) return res.status(200).json({ success: true });
+
+    if (req.user.role !== 'admin' && req.user.role !== 'hr') {
+      return res.status(403).json({ success: false, message: 'Not authorized to reorder tasks' });
+    }
 
     const ops = updates.map(({ id, status, order }) => ({
       updateOne: { filter: { _id: id }, update: { $set: { status, order } } },
@@ -233,12 +250,16 @@ const logTime = async (req, res, next) => {
     const { minutes } = req.body;
     if (!minutes || minutes < 0) { res.status(400); return next(new Error('Invalid minutes')); }
 
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { timeSpent: minutes } },
-      { new: true }
-    );
+    const task = await Task.findById(req.params.id);
     if (!task) { res.status(404); return next(new Error('Task not found')); }
+
+    const isAdminOrHr = req.user.role === 'admin' || req.user.role === 'hr';
+    const isAssigned = task.assignedTo.map(id => id.toString()).includes(req.user._id.toString());
+    if (!isAdminOrHr && !isAssigned) {
+      res.status(403); return next(new Error('Not assigned to this task'));
+    }
+
+    await task.updateOne({ $inc: { timeSpent: minutes } });
 
     // Save to timesheet — use IST (UTC+5:30) date so late-night logs land on correct day
     const now = new Date();
@@ -280,11 +301,10 @@ const addComment = async (req, res, next) => {
     }
     if (mentionedNames.length) {
       const allUsers = await User.find({ isActive: true }).select('_id name');
-      for (const u of allUsers) {
-        if (mentionedNames.some(n => u.name.toLowerCase().includes(n))) {
-          await createNotification(u._id, 'You were mentioned', `${req.user.name} mentioned you in: ${task.title}`, 'task', `/tasks`);
-        }
-      }
+      const mentionedUsers = allUsers.filter(u => mentionedNames.some(n => u.name.toLowerCase().includes(n)));
+      await Promise.all(mentionedUsers.map(u =>
+        createNotification(u._id, 'You were mentioned', `${req.user.name} mentioned you in: ${task.title}`, 'task', `/tasks`)
+      ));
     }
 
     const notifyUsers = [...new Set(
@@ -294,9 +314,9 @@ const addComment = async (req, res, next) => {
         .filter(id => id !== req.user._id.toString())
     )];
 
-    for (const userId of notifyUsers) {
-      await createNotification(userId, 'New Comment on Task', `${req.user.name} commented on: ${task.title}`, 'task', `/tasks`);
-    }
+    await Promise.all(notifyUsers.map(userId =>
+      createNotification(userId, 'New Comment on Task', `${req.user.name} commented on: ${task.title}`, 'task', `/tasks`)
+    ));
 
     const populated = await populateTask(Task.findById(task._id));
     res.status(200).json({ success: true, task: populated });
@@ -332,7 +352,7 @@ const addAttachment = async (req, res, next) => {
     if (!req.file) { res.status(400); return next(new Error('No file uploaded')); }
 
     task.attachments.push({
-      name: req.file.originalname,
+      name: path.basename(req.file.originalname).replace(/[^a-zA-Z0-9.\-_]/g, '_'),
       url: `/uploads/${req.file.filename}`,
       size: req.file.size,
       uploadedBy: req.user._id,

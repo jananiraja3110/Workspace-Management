@@ -5,17 +5,16 @@ const Task = require('../models/Task');
 const ActivityLog = require('../models/ActivityLog');
 const Expense = require('../models/Expense');
 
-// Helper: get today's date range (start and end of day in UTC)
+const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
+// Today's day boundaries in UTC, calculated from IST "today"
 const getTodayDate = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const ist = new Date(Date.now() + IST_OFFSET);
+  const start = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()));
+  const end   = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() + 1));
   return { start, end };
 };
-const getTodayMidnight = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-};
+const getTodayMidnight = () => getTodayDate().start;
 
 // @desc    Get dashboard stats based on user role
 // @route   GET /api/dashboard/stats

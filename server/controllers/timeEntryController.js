@@ -50,7 +50,7 @@ const getEntries = async (req, res, next) => {
       user: userId,
       date: { $gte: weekStart, $lt: weekEnd },
     })
-      .populate('task', 'title status')
+      .populate({ path: 'task', select: 'title status', populate: { path: 'space', select: 'name' } })
       .sort({ date: 1, createdAt: 1 });
 
     res.json({ success: true, entries });
@@ -76,13 +76,13 @@ const getRunning = async (req, res, next) => {
   }
 };
 
-// GET /api/timeentries/tasks  — tasks picker (user's assigned tasks)
+// GET /api/timeentries/tasks  — tasks picker (always scoped to logged-in user)
 const getTasksForPicker = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const tasks = await Task.find({
-      $or: [{ assignedTo: userId }, { assignedBy: userId }],
-    })
+    const filter = { assignedTo: userId };
+
+    const tasks = await Task.find(filter)
       .select('title status')
       .populate('space', 'name')
       .sort({ title: 1 });
@@ -200,6 +200,32 @@ const setCell = async (req, res, next) => {
   }
 };
 
+// GET /api/timeentries/all  — admin/HR: all users for a week
+const getAllEntries = async (req, res, next) => {
+  try {
+    if (!['admin', 'hr'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    const weekParam = req.query.week;
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(Date.now() + istOffset);
+    const weekStart = weekParam ? mondayOf(new Date(`${weekParam}T00:00:00Z`)) : mondayOf(istNow);
+    const weekEnd = new Date(weekStart.getTime());
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+
+    const entries = await TimeEntry.find({
+      date: { $gte: weekStart, $lt: weekEnd },
+    })
+      .populate({ path: 'task', select: 'title status', populate: { path: 'space', select: 'name' } })
+      .populate('user', 'name email role designation department avatar')
+      .sort({ date: 1, createdAt: 1 });
+
+    res.json({ success: true, entries });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // DELETE /api/timeentries/:id
 const deleteEntry = async (req, res, next) => {
   try {
@@ -217,4 +243,4 @@ const deleteEntry = async (req, res, next) => {
   }
 };
 
-module.exports = { getEntries, getRunning, getTasksForPicker, startTimer, stopTimer, setCell, deleteEntry };
+module.exports = { getEntries, getAllEntries, getRunning, getTasksForPicker, startTimer, stopTimer, setCell, deleteEntry };

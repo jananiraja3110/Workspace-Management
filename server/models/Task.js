@@ -16,6 +16,7 @@ const taskSchema = new mongoose.Schema(
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: { type: String, enum: ['pending', 'todo', 'in-progress', 'completed', 'overdue'], default: 'todo' },
     priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+    startDate: { type: Date },
     dueDate: { type: Date },
     completedAt: { type: Date },
     timeEstimate: { type: Number, default: 0 }, // minutes
@@ -50,5 +51,7 @@ taskSchema.index({ assignedTo: 1, status: 1 });
 taskSchema.index({ assignedBy: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ status: 1, order: 1 });
+taskSchema.index({ space: 1, status: 1, order: 1 });
+taskSchema.index({ dueDate: 1, status: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);

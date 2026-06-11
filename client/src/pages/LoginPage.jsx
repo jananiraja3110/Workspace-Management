@@ -68,7 +68,13 @@ const LoginPage = () => {
       if (data.user?.mustChangePassword) {
         navigate('/change-password');
       } else {
-        navigate('/dashboard');
+        const redirect = localStorage.getItem('redirectAfterLogin');
+        if (redirect) {
+          localStorage.removeItem('redirectAfterLogin');
+          navigate(redirect);
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');

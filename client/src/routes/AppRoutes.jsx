@@ -7,6 +7,7 @@ import ProtectedRoute from './ProtectedRoute';
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import DashboardPage from '../pages/DashboardPage';
 import TasksPage from '../pages/TasksPage';
@@ -49,6 +50,7 @@ const AppRoutes = () => {
           <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
           <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         </Route>
 
         {/* Change Password (no layout) */}

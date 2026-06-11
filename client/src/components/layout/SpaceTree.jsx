@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ChevronRight, Plus, MoreHorizontal, Trash2, Pencil, Layers } from 'lucide-react';
+import { ChevronRight, Plus, MoreHorizontal, Trash2, LayoutList } from 'lucide-react';
 import API from '../../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+
 
 export default function SpaceTree({ collapsed }) {
   const { user } = useAuth();
@@ -16,19 +17,33 @@ export default function SpaceTree({ collapsed }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [menuId, setMenuId] = useState(null);
+  const [spaceTasks, setSpaceTasks] = useState({});
 
   useEffect(() => {
     API.get('/spaces').then(r => {
       const list = r.data.spaces || [];
       setSpaces(list);
-      if (list.length > 0) setOpenIds(new Set([list[0]._id]));
+      if (list.length > 0) {
+        setOpenIds(new Set([list[0]._id]));
+        // pre-load tasks for first space
+        API.get(`/tasks?space=${list[0]._id}`).then(r2 => {
+          setSpaceTasks({ [list[0]._id]: r2.data.tasks || [] });
+        }).catch(() => {});
+      }
     }).catch(() => {});
   }, []);
+
+  async function loadTasks(spaceId) {
+    try {
+      const { data } = await API.get(`/tasks?space=${spaceId}`);
+      setSpaceTasks(prev => ({ ...prev, [spaceId]: data.tasks || [] }));
+    } catch { setSpaceTasks(prev => ({ ...prev, [spaceId]: [] })); }
+  }
 
   function toggle(id) {
     setOpenIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); loadTasks(id); }
       return next;
     });
   }
@@ -149,7 +164,29 @@ export default function SpaceTree({ collapsed }) {
                 </div>
               </div>
 
-              {/* Expanded: nothing yet (no sub-items in our model) */}
+              {/* Expanded: individual task names */}
+              {isOpen && (
+                <div className="ml-4 mb-1 space-y-0">
+                  {spaceTasks[space._id] === undefined ? (
+                    <p className="text-[11px] text-indigo-300/30 px-3 py-1 italic">Loading…</p>
+                  ) : (spaceTasks[space._id] || []).length === 0 ? (
+                    <p className="text-[11px] text-indigo-300/30 px-3 py-1 italic">No tasks</p>
+                  ) : (
+                    (spaceTasks[space._id] || []).map(task => (
+                      <NavLink
+                        key={task._id}
+                        to={`/spaces/${space._id}`}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 w-full px-2 py-[3px] rounded text-left transition-colors group hover:bg-white/8 ${isActive ? '' : ''}`
+                        }
+                      >
+                        <LayoutList className="w-3 h-3 text-indigo-300/40 flex-shrink-0"/>
+                        <span className="flex-1 text-[11px] text-indigo-200/55 group-hover:text-white truncate">{task.title}</span>
+                      </NavLink>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

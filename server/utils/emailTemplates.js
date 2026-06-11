@@ -25,10 +25,12 @@ const baseTemplate = (content) => `
 const welcomeEmail = (name, email, password) => baseTemplate(`
   <h2>Welcome to AD Workspace, ${name}!</h2>
   <p>Your account has been created. Here are your login credentials:</p>
-  <p><strong>Email:</strong> ${email}</p>
-  <p><strong>Password:</strong> ${password}</p>
-  <p>Please change your password after your first login for security.</p>
-  <a href="#" class="button">Login Now</a>
+  <table style="background:#f1f5f9;border-radius:8px;padding:16px;width:100%;margin:16px 0">
+    <tr><td style="padding:4px 0"><strong>Email:</strong></td><td>${email}</td></tr>
+    <tr><td style="padding:4px 0"><strong>Password:</strong></td><td style="font-family:monospace;font-size:15px">${password}</td></tr>
+  </table>
+  <p style="color:#ef4444;font-size:13px">&#9888; Please change your password after your first login.</p>
+  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/login" class="button">Login Now</a>
 `);
 
 const taskAssignedEmail = (name, taskTitle, assignedBy) => baseTemplate(`
@@ -63,7 +65,7 @@ const resetPasswordEmail = (name, resetToken) => baseTemplate(`
   <h2>Password Reset</h2>
   <p>Hi ${name},</p>
   <p>You requested a password reset. Click the button below:</p>
-  <a href="#" class="button">Reset Password</a>
+  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}" class="button">Reset Password</a>
   <p>If you didn't request this, please ignore this email.</p>
 `);
 

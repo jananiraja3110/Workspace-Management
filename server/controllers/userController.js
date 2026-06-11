@@ -79,9 +79,34 @@ const createUser = async (req, res, next) => {
       managerId,
     } = req.body;
 
+    // Capture plaintext password before Mongoose hashes it
+    const plainPassword = password;
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      if (existingUser.isActive === false) {
+        // Reactivate the soft-deleted user with new details
+        existingUser.name        = name;
+        existingUser.password    = password;
+        existingUser.role        = role || existingUser.role;
+        existingUser.department  = department || existingUser.department;
+        existingUser.designation = designation || existingUser.designation;
+        existingUser.phone       = phone || existingUser.phone;
+        existingUser.dateOfBirth = dateOfBirth || existingUser.dateOfBirth;
+        existingUser.joiningDate = joiningDate || existingUser.joiningDate;
+        existingUser.managerId   = managerId || null;
+        existingUser.isActive    = true;
+        existingUser.mustChangePassword = true;
+        await existingUser.save();
+
+        sendEmail(email, 'Welcome to AD Workspace', welcomeEmail(name, email, password))
+          .catch(err => console.error('Welcome email failed:', err.message));
+
+        const safe = existingUser.toObject();
+        delete safe.password;
+        return res.status(200).json({ success: true, user: safe });
+      }
       res.status(400);
       return next(new Error('User with this email already exists'));
     }
@@ -108,7 +133,7 @@ const createUser = async (req, res, next) => {
     sendEmail(
       email,
       'Welcome to AD Workspace',
-      welcomeEmail(name, email, password)
+      welcomeEmail(name, email, plainPassword)
     ).catch((err) => console.error('Welcome email failed:', err.message));
 
     // Log activity
@@ -139,11 +164,11 @@ const createUser = async (req, res, next) => {
 // @access  Admin
 const updateUser = async (req, res, next) => {
   try {
-    // Remove password from update fields
-    const updateFields = { ...req.body };
-    delete updateFields.password;
+    const allowed = ['name', 'email', 'phone', 'department', 'position', 'role', 'designation', 'dateOfBirth', 'joiningDate', 'managerId', 'profileImage', 'address', 'emergencyContact', 'isActive'];
+    const updates = {};
+    allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
 
-    const user = await User.findByIdAndUpdate(req.params.id, updateFields, {
+    const user = await User.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true,
     }).select('-password');
@@ -166,6 +191,26 @@ const updateUser = async (req, res, next) => {
       success: true,
       user,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update own profile (employee self-service)
+// @route   PUT /api/users/me
+// @access  Any authenticated user
+const updateMe = async (req, res, next) => {
+  try {
+    const allowed = ['name', 'phone', 'profileImage', 'address', 'emergencyContact'];
+    const updates = {};
+    allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    }).select('-password');
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
     next(error);
   }
@@ -266,6 +311,7 @@ module.exports = {
   getUserById,
   createUser,
   updateUser,
+  updateMe,
   deleteUser,
   getTeam,
   updateAvatar,

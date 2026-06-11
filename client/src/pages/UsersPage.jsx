@@ -3,7 +3,7 @@ import API from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
-  Users, Plus, Edit2, X, Loader2, Search, UserCheck, UserX, Shield
+  Users, Plus, Edit2, X, Loader2, Search, UserCheck, UserX, Shield, Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -63,7 +63,8 @@ const UsersPage = () => {
       u.employeeId?.toLowerCase().includes(search.toLowerCase());
     const matchRole = !filterRole || u.role === filterRole;
     const matchDept = !filterDept || u.department === filterDept;
-    const matchStatus = !filterStatus || u.status === filterStatus;
+    const isActive = u.isActive !== false;
+    const matchStatus = filterStatus === 'inactive' ? !isActive : filterStatus === 'active' ? isActive : isActive;
     return matchSearch && matchRole && matchDept && matchStatus;
   });
 
@@ -108,11 +109,22 @@ const UsersPage = () => {
     }
   };
 
-  const toggleStatus = async (userId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const deleteUser = async (userId, userName) => {
+    if (!window.confirm(`Permanently delete "${userName}"? This cannot be undone.`)) return;
     try {
-      await API.put(`/users/${userId}`, { status: newStatus });
-      toast.success(`User ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+      await API.delete(`/users/${userId}`);
+      toast.success(`${userName} removed`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  const toggleStatus = async (userId, currentIsActive) => {
+    const newIsActive = !currentIsActive;
+    try {
+      await API.put(`/users/${userId}`, { isActive: newIsActive });
+      toast.success(newIsActive ? 'User activated' : 'User deactivated');
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
@@ -201,8 +213,8 @@ const UsersPage = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell">{u.department || '-'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadgeColors[u.status] || statusBadgeColors.active}`}>
-                        {u.status || 'active'}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.isActive !== false ? statusBadgeColors.active : statusBadgeColors.inactive}`}>
+                        {u.isActive !== false ? 'active' : 'inactive'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -211,15 +223,22 @@ const UsersPage = () => {
                           className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition text-blue-600">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => toggleStatus(u._id, u.status || 'active')}
+                        <button onClick={() => toggleStatus(u._id, u.isActive !== false)}
                           className={`p-1.5 rounded-lg transition ${
-                            (u.status || 'active') === 'active'
+                            u.isActive !== false
                               ? 'hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600'
                               : 'hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600'
                           }`}
-                          title={(u.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}>
-                          {(u.status || 'active') === 'active' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          title={u.isActive !== false ? 'Deactivate' : 'Activate'}>
+                          {u.isActive !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </button>
+                        {user?.role === 'admin' && u._id !== user?._id && (
+                          <button onClick={() => deleteUser(u._id, u.name)}
+                            className="p-1.5 rounded-lg transition hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600"
+                            title="Delete user permanently">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -249,13 +268,13 @@ const UsersPage = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
-                  <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputCls} />
+                  <input type="email" required autoComplete="off" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputCls} />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Password {editingId ? '(leave blank to keep)' : '*'}
                   </label>
-                  <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+                  <input type="password" autoComplete="new-password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                     {...(!editingId && { required: true })}
                     className={inputCls} />
                 </div>

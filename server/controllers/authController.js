@@ -5,6 +5,17 @@ const { generateEmployeeId } = require('../utils/generateId');
 const { sendEmail } = require('../utils/sendEmail');
 const { welcomeEmail, resetPasswordEmail } = require('../utils/emailTemplates');
 
+// Simple in-memory rate limiter
+const loginAttempts = new Map(); // key: email or ip, value: { count, resetAt }
+function checkRateLimit(key, maxAttempts = 10, windowMs = 15 * 60 * 1000) {
+  const now = Date.now();
+  const entry = loginAttempts.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + windowMs; }
+  entry.count++;
+  loginAttempts.set(key, entry);
+  return entry.count > maxAttempts;
+}
+
 // Helper: generate JWT
 const generateToken = (user) => {
   return jwt.sign(
@@ -20,6 +31,9 @@ const generateToken = (user) => {
 const register = async (req, res, next) => {
   try {
     const { email, password, name, role, department, designation, phone, dateOfBirth, joiningDate } = req.body;
+
+    // Capture plaintext password before Mongoose hashes it
+    const plainPassword = password;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -51,7 +65,7 @@ const register = async (req, res, next) => {
     sendEmail(
       email,
       'Welcome to AD Workspace',
-      welcomeEmail(name, email, password)
+      welcomeEmail(name, email, plainPassword)
     ).catch((err) => console.error('Welcome email failed:', err.message));
 
     // Return user without password
@@ -74,6 +88,10 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+
+    if (checkRateLimit(email || req.ip)) {
+      return res.status(429).json({ success: false, message: 'Too many attempts. Try again in 15 minutes.' });
+    }
 
     if (!email || !password) {
       res.status(400);
@@ -99,7 +117,7 @@ const login = async (req, res, next) => {
     }
 
     // Generate 6-digit OTP, expire in 10 min
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     user.otpCode   = otp;
     user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
@@ -128,6 +146,10 @@ const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
+    if (checkRateLimit(email || req.ip)) {
+      return res.status(429).json({ success: false, message: 'Too many attempts. Try again in 15 minutes.' });
+    }
+
     if (!email || !otp) {
       res.status(400);
       return next(new Error('Email and OTP are required'));
@@ -140,20 +162,27 @@ const verifyOtp = async (req, res, next) => {
       return next(new Error('OTP not requested or already used'));
     }
 
+    if (user.otpAttempts >= 5) {
+      return res.status(429).json({ success: false, message: 'Too many OTP attempts. Please log in again.' });
+    }
+
     if (new Date() > user.otpExpire) {
       res.status(401);
       return next(new Error('OTP has expired. Please login again'));
     }
 
     if (user.otpCode !== otp.trim()) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save({ validateBeforeSave: false });
       res.status(401);
       return next(new Error('Invalid OTP'));
     }
 
-    // Clear OTP
-    user.otpCode   = undefined;
-    user.otpExpire = undefined;
-    user.lastLogin = new Date();
+    // Clear OTP and reset attempt counter
+    user.otpCode      = undefined;
+    user.otpExpire    = undefined;
+    user.otpAttempts  = 0;
+    user.lastLogin    = new Date();
     await user.save({ validateBeforeSave: false });
 
     const token = generateToken(user);
@@ -201,6 +230,11 @@ const changePassword = async (req, res, next) => {
       return next(new Error('Please provide current password and new password'));
     }
 
+    if (newPassword.length < 6) {
+      res.status(400);
+      return next(new Error('New password must be at least 6 characters'));
+    }
+
     // Get user with password
     const user = await User.findById(req.user._id).select('+password');
 
@@ -211,10 +245,15 @@ const changePassword = async (req, res, next) => {
       return next(new Error('Current password is incorrect'));
     }
 
+    // Capture whether this was a forced change before modifying
+    const wasMustChange = user.mustChangePassword;
+
     // Update password
     user.password = newPassword;
     user.mustChangePassword = false;
-    user.onboardingCompleted = false; // so tour shows after password change
+    if (wasMustChange) {
+      user.onboardingCompleted = false; // so tour shows after forced password change
+    }
     await user.save();
 
     // Return updated user (without password)
@@ -242,11 +281,14 @@ const forgotPassword = async (req, res, next) => {
       return next(new Error('Please provide an email'));
     }
 
+    if (checkRateLimit(email || req.ip)) {
+      return res.status(429).json({ success: false, message: 'Too many attempts. Try again in 15 minutes.' });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
-      res.status(404);
-      return next(new Error('No user found with that email'));
+      return res.status(200).json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
     }
 
     // Generate reset token
@@ -270,8 +312,44 @@ const forgotPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset token generated',
+      message: 'If that email is registered, a reset link has been sent.',
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password using token
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  try {
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      res.status(400);
+      return next(new Error('Invalid or expired token'));
+    }
+
+    if (!req.body.password || req.body.password.trim().length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    user.mustChangePassword = false;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password reset successful' });
   } catch (error) {
     next(error);
   }
@@ -284,4 +362,5 @@ module.exports = {
   getMe,
   changePassword,
   forgotPassword,
+  resetPassword,
 };

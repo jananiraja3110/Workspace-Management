@@ -93,11 +93,20 @@ const DashboardLayout = () => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Larger font on all pages except dashboard
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      document.documentElement.classList.remove('page-zoom');
+    } else {
+      document.documentElement.classList.add('page-zoom');
+    }
+    return () => document.documentElement.classList.remove('page-zoom');
+  }, [location.pathname]);
+
   // Live London time
   useEffect(() => {
     const updateLondonTime = () => {
-      const now = new Date();
-      const time = now.toLocaleTimeString('en-GB', {
+      const time = new Date().toLocaleTimeString('en-GB', {
         timeZone: 'Europe/London',
         hour: '2-digit',
         minute: '2-digit',
@@ -106,7 +115,7 @@ const DashboardLayout = () => {
       setLondonTime(time);
     };
     updateLondonTime();
-    const interval = setInterval(updateLondonTime, 30000);
+    const interval = setInterval(updateLondonTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -124,7 +133,7 @@ const DashboardLayout = () => {
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000); // refresh every 30s
     return () => clearInterval(interval);
-  }, [fetchUnread, location.pathname]);
+  }, [fetchUnread]);
 
   // Real-time notifications via socket
   useSocket(user?._id, () => {
@@ -407,7 +416,7 @@ const DashboardLayout = () => {
                       >
                         <User className="w-4 h-4 text-slate-400" /> My Profile
                       </Link>
-                      {(userRole === 'admin' || userRole === 'hr') && (
+                      {userRole === 'admin' && (
                         <Link
                           to="/settings"
                           onClick={() => setDropdownOpen(false)}
@@ -433,7 +442,7 @@ const DashboardLayout = () => {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8" key={location.pathname}>
+        <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

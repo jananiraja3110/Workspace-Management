@@ -19,7 +19,8 @@ import { format, isToday, differenceInDays } from 'date-fns';
 
 // ── Task Donut ─────────────────────────────────────────────────────
 const TaskDonut = ({ pending = 0, inProgress = 0, completed = 0 }) => {
-  const total = pending + inProgress + completed || 1;
+  const displayTotal = pending + inProgress + completed;
+  const total = Math.max(1, displayTotal);
   const r = 40;
   const circ = 2 * Math.PI * r;
   const slices = [
@@ -43,7 +44,7 @@ const TaskDonut = ({ pending = 0, inProgress = 0, completed = 0 }) => {
           offset += dash;
           return el;
         })}
-        <text x="50" y="50" textAnchor="middle" dominantBaseline="central" className="fill-slate-700 dark:fill-slate-200" fontSize="14" fontWeight="bold">{total - 1 === 0 ? 0 : total}</text>
+        <text x="50" y="50" textAnchor="middle" dominantBaseline="central" className="fill-slate-700 dark:fill-slate-200" fontSize="14" fontWeight="bold">{displayTotal}</text>
       </svg>
       <div className="space-y-2 text-sm">
         {[['Done', completed, '#10B981'], ['Active', inProgress, '#3B82F6'], ['Pending', pending, '#EAB308']].map(([label, val, color]) => (
@@ -126,21 +127,24 @@ const AdminDashboard = ({ stats }) => {
 
   useEffect(() => {
     // Fetch today's team attendance snapshot
-    API.get('/attendance/team', { params: { startDate: format(new Date(), 'yyyy-MM-dd'), endDate: format(new Date(), 'yyyy-MM-dd') } })
+    const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayIST = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth()+1).padStart(2,'0')}-${String(istNow.getUTCDate()).padStart(2,'0')}`;
+    API.get('/attendance/team', { params: { startDate: todayIST, endDate: todayIST } })
       .then(({ data }) => setTodayAttendance(data.attendance || data))
       .catch(() => {});
     // Fetch upcoming birthdays from users
     API.get('/users?limit=100')
       .then(({ data }) => {
         const users = data.users || data;
-        const today = new Date();
+        const istNow2 = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+        const todayUTC = new Date(Date.UTC(istNow2.getUTCFullYear(), istNow2.getUTCMonth(), istNow2.getUTCDate()));
         const upcoming = users
           .filter(u => u.dateOfBirth)
           .map(u => {
             const dob = new Date(u.dateOfBirth);
-            const thisYear = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-            if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
-            const days = Math.round((thisYear - today) / (1000 * 60 * 60 * 24));
+            let thisYear = new Date(Date.UTC(todayUTC.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()));
+            if (thisYear < todayUTC) thisYear = new Date(Date.UTC(todayUTC.getUTCFullYear() + 1, dob.getUTCMonth(), dob.getUTCDate()));
+            const days = Math.round((thisYear - todayUTC) / (1000 * 60 * 60 * 24));
             return { name: u.name, designation: u.designation, role: u.role, daysUntil: days, isToday: days === 0 };
           })
           .filter(b => b.daysUntil <= 30)
@@ -320,7 +324,9 @@ const DeveloperDashboard = ({ stats }) => {
             ) : (
               <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                 {deadlines.map((item, idx) => {
-                  const daysLeft = item.dueDate ? Math.ceil((new Date(item.dueDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const _ist = new Date(Date.now() + 5.5*60*60*1000);
+                  const _todayMidnight = new Date(Date.UTC(_ist.getUTCFullYear(), _ist.getUTCMonth(), _ist.getUTCDate()));
+                  const daysLeft = item.dueDate ? Math.ceil((new Date(item.dueDate) - _todayMidnight) / (1000 * 60 * 60 * 24)) : null;
                   return (
                     <div key={item._id || idx} className="flex items-center justify-between px-5 py-3.5">
                       <div className="min-w-0 flex-1">
@@ -358,7 +364,7 @@ const DashboardPage = () => {
   const { data, loading } = useFetch('/dashboard/stats');
 
   const stats = data?.stats || data || {};
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
   const greeting = getGreeting();
 
   if (loading) {

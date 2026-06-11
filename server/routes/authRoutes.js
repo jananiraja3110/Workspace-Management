@@ -7,6 +7,7 @@ const {
   getMe,
   changePassword,
   forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/roleCheck');
@@ -43,5 +44,8 @@ router.put('/change-password', protect, changePassword);
 
 // POST /forgot-password - public
 router.post('/forgot-password', forgotPassword);
+
+// PUT /reset-password/:token - public
+router.put('/reset-password/:token', resetPassword);
 
 module.exports = router;

@@ -11,10 +11,31 @@ const storage = multer.diskStorage({
   },
 });
 
-// Allow all file types
+const fileFilter = (req, file, cb) => {
+  const allowed = [
+    'image/',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'application/zip',
+  ];
+  const isAllowed = allowed.some(type =>
+    file.mimetype === type || file.mimetype.startsWith(type)
+  );
+  if (isAllowed) {
+    cb(null, true);
+  } else {
+    cb(new Error('File type not allowed'), false);
+  }
+};
+
 const upload = multer({
   storage,
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  fileFilter,
 });
 
 module.exports = { upload };

@@ -56,8 +56,8 @@ export const SIDEBAR_LINKS = [
   ]},
   { section: 'Admin', items: [
     { name: 'Users', path: '/users', icon: 'UserCog', roles: ['admin', 'hr'] },
-    { name: 'Reports', path: '/reports', icon: 'BarChart3', roles: ['admin', 'hr'] },
-    { name: 'Activity Log', path: '/activity-log', icon: 'ScrollText', roles: ['admin', 'hr'] },
-    { name: 'Settings', path: '/settings', icon: 'Settings', roles: ['admin', 'hr'] },
+    { name: 'Reports', path: '/reports', icon: 'BarChart3', roles: ['admin'] },
+    { name: 'Activity Log', path: '/activity-log', icon: 'ScrollText', roles: ['admin'] },
+    { name: 'Settings', path: '/settings', icon: 'Settings', roles: ['admin'] },
   ]},
 ];

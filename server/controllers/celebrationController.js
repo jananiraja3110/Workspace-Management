@@ -3,11 +3,13 @@
 // @desc    Get today's celebrations (birthdays and anniversaries)
 // @route   GET /api/celebrations/today
 // @access  Private
+const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
 const getTodayCelebrations = async (req, res, next) => {
   try {
-    const today = new Date();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
+    const ist = new Date(Date.now() + IST_OFFSET);
+    const month = ist.getUTCMonth() + 1;
+    const day = ist.getUTCDate();
 
     const birthdays = await User.find({
       isActive: true,
@@ -44,15 +46,15 @@ const getTodayCelebrations = async (req, res, next) => {
 // @access  Private
 const getUpcomingCelebrations = async (req, res, next) => {
   try {
-    const today = new Date();
-    const upcoming = [];
+    const istNow = new Date(Date.now() + IST_OFFSET);
+    const todayUTC = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()));
+    const today = istNow; // IST "today" for year/month/day extraction
 
-    // Build an array of (month, day) pairs for next 30 days
+    // Build an array of (month, day) pairs for next 30 days (IST)
     const datePairs = [];
     for (let i = 0; i <= 30; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() + i);
-      datePairs.push({ month: d.getMonth() + 1, day: d.getDate() });
+      const d = new Date(todayUTC.getTime() + i * 86400000);
+      datePairs.push({ month: d.getUTCMonth() + 1, day: d.getUTCDate() });
     }
 
     const activeUsers = await User.find({ isActive: true })
@@ -63,9 +65,9 @@ const getUpcomingCelebrations = async (req, res, next) => {
 
     for (const user of activeUsers) {
       if (user.dateOfBirth) {
-        const bMonth = user.dateOfBirth.getMonth() + 1;
-        const bDay = user.dateOfBirth.getDate();
-        const match = datePairs.find((dp) => dp.month === bMonth && dp.day === bDay);
+        const bMonth = user.dateOfBirth.getUTCMonth() + 1;
+        const bDay   = user.dateOfBirth.getUTCDate();
+        const match  = datePairs.find((dp) => dp.month === bMonth && dp.day === bDay);
         if (match) {
           birthdays.push({
             _id: user._id,
@@ -73,17 +75,17 @@ const getUpcomingCelebrations = async (req, res, next) => {
             department: user.department,
             designation: user.designation,
             dateOfBirth: user.dateOfBirth,
-            upcomingDate: new Date(today.getFullYear(), bMonth - 1, bDay),
+            upcomingDate: new Date(Date.UTC(today.getUTCFullYear(), bMonth - 1, bDay)),
           });
         }
       }
 
       if (user.joiningDate) {
-        const jMonth = user.joiningDate.getMonth() + 1;
-        const jDay = user.joiningDate.getDate();
-        const match = datePairs.find((dp) => dp.month === jMonth && dp.day === jDay);
+        const jMonth = user.joiningDate.getUTCMonth() + 1;
+        const jDay   = user.joiningDate.getUTCDate();
+        const match  = datePairs.find((dp) => dp.month === jMonth && dp.day === jDay);
         if (match) {
-          const yearsCompleted = today.getFullYear() - user.joiningDate.getFullYear();
+          const yearsCompleted = today.getUTCFullYear() - user.joiningDate.getUTCFullYear();
           if (yearsCompleted > 0) {
             anniversaries.push({
               _id: user._id,
@@ -92,7 +94,7 @@ const getUpcomingCelebrations = async (req, res, next) => {
               designation: user.designation,
               joiningDate: user.joiningDate,
               yearsCompleted,
-              upcomingDate: new Date(today.getFullYear(), jMonth - 1, jDay),
+              upcomingDate: new Date(Date.UTC(today.getUTCFullYear(), jMonth - 1, jDay)),
             });
           }
         }

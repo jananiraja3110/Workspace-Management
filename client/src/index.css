@@ -337,6 +337,11 @@ tbody tr {
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ===== Larger text on non-dashboard pages ===== */
+html.page-zoom {
+  font-size: 17px;
+}
+
 /* ===== Checkbox tick ===== */
 input[type="checkbox"]:checked {
   animation: checkTick 0.2s ease;

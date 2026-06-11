@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import {
   Clock, LogIn, LogOut, Calendar, Timer, Users, Download,
 } from 'lucide-react';
-import { format, differenceInMinutes, startOfMonth, endOfMonth } from 'date-fns';
+import { differenceInMinutes } from 'date-fns';
 
 const AttendancePage = () => {
   const { user } = useAuth();
@@ -27,16 +27,23 @@ const AttendancePage = () => {
   const [loadingMy,   setLoadingMy]   = useState(false);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(() => new Date(Date.now() + 5.5*60*60*1000));
 
-  const now = new Date();
-  const [startDate, setStartDate] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
-  const [endDate,   setEndDate]   = useState(format(endOfMonth(now),   'yyyy-MM-dd'));
+  const _istNow = new Date(Date.now() + 5.5*60*60*1000);
+  const _istY = _istNow.getUTCFullYear(), _istM = _istNow.getUTCMonth();
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date(Date.UTC(_istY, _istM, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date(Date.UTC(_istY, _istM + 1, 0));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  });
 
-  // Live clock (non-admin only)
+  // Live clock (non-admin only) — shows IST
   useEffect(() => {
     if (isAdmin) return;
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date(Date.now() + 5.5*60*60*1000)), 1000);
     return () => clearInterval(timer);
   }, [isAdmin]);
 
@@ -144,9 +151,11 @@ const AttendancePage = () => {
     const csvRows = rows.map(r => {
       if (activeTab === 'team') {
         const name = r.user?.name || r.employee?.name || 'Unknown';
-        return [name, r.date ? format(new Date(r.date), 'MMM dd yyyy') : '', r.checkIn ? format(new Date(r.checkIn), 'hh:mm a') : '', r.checkOut ? format(new Date(r.checkOut), 'hh:mm a') : '', r.status || ''].join(',');
-      }
-      return [r.date ? format(new Date(r.date), 'MMM dd yyyy') : '', r.checkIn ? format(new Date(r.checkIn), 'hh:mm a') : '', r.checkOut ? format(new Date(r.checkOut), 'hh:mm a') : '', r.totalHours || formatDuration(r.checkIn, r.checkOut), r.status || ''].join(',');
+        const fmtIST = (v, t) => v ? new Date(v).toLocaleString('en-IN', { ...(t==='date'?{day:'2-digit',month:'short',year:'numeric'}:{hour:'2-digit',minute:'2-digit',hour12:true}), timeZone:'Asia/Kolkata' }) : '';
+        return [name, fmtIST(r.date,'date'), fmtIST(r.checkIn,'time'), fmtIST(r.checkOut,'time'), r.status || ''].join(',');
+}
+      const fmtIST2 = (v, t) => v ? new Date(v).toLocaleString('en-IN', { ...(t==='date'?{day:'2-digit',month:'short',year:'numeric'}:{hour:'2-digit',minute:'2-digit',hour12:true}), timeZone:'Asia/Kolkata' }) : '';
+      return [fmtIST2(r.date,'date'), fmtIST2(r.checkIn,'time'), fmtIST2(r.checkOut,'time'), r.totalHours || formatDuration(r.checkIn, r.checkOut), r.status || ''].join(',');
     });
     const csv = [headers.join(','), ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -179,18 +188,18 @@ const AttendancePage = () => {
   })();
 
   const myColumns = [
-    { key: 'date', label: 'Date', render: (val) => val ? format(new Date(val), 'MMM dd, yyyy') : '-' },
-    { key: 'checkIn',  label: 'Check In',  render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
-    { key: 'checkOut', label: 'Check Out', render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
+    { key: 'date', label: 'Date', render: (val) => val ? new Date(val).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '-' },
+    { key: 'checkIn',  label: 'Check In',  render: (val) => val ? new Date(val).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '-' },
+    { key: 'checkOut', label: 'Check Out', render: (val) => val ? new Date(val).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '-' },
     { key: 'totalHours', label: 'Total Hours', render: (val, row) => val || formatDuration(row.checkIn, row.checkOut) },
     { key: 'status', label: 'Status', render: (val) => <StatusBadge status={val || 'present'} /> },
   ];
 
   const teamColumns = [
     { key: 'employee', label: 'Employee', render: (_, row) => { const e = row.user || row.employee; return e?.name || 'Unknown'; } },
-    { key: 'date',     label: 'Date',     render: (val) => val ? format(new Date(val), 'MMM dd, yyyy') : '-' },
-    { key: 'checkIn',  label: 'Check In', render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
-    { key: 'checkOut', label: 'Check Out', render: (val) => val ? format(new Date(val), 'hh:mm a') : '-' },
+    { key: 'date',     label: 'Date',     render: (val) => val ? new Date(val).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '-' },
+    { key: 'checkIn',  label: 'Check In', render: (val) => val ? new Date(val).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '-' },
+    { key: 'checkOut', label: 'Check Out', render: (val) => val ? new Date(val).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '-' },
     { key: 'totalHours', label: 'Total Hours', render: (val, row) => val || formatDuration(row.checkIn, row.checkOut) },
     { key: 'status',  label: 'Status',   render: (val) => <StatusBadge status={val || 'present'} /> },
   ];
@@ -215,10 +224,10 @@ const AttendancePage = () => {
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium tracking-wide">Today's Status</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
-                  {format(currentTime, 'hh:mm:ss a')}
+                  {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                 </p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {format(currentTime, 'EEEE, MMMM dd, yyyy')}
+                  {currentTime.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                 </p>
               </div>
             </div>
@@ -230,7 +239,7 @@ const AttendancePage = () => {
                     <div className="text-center">
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Check In</p>
                       <p className="text-sm font-semibold text-green-600 flex items-center gap-1">
-                        <LogIn className="h-3.5 w-3.5" />{format(new Date(todayStatus.checkIn), 'hh:mm a')}
+                        <LogIn className="h-3.5 w-3.5" />{new Date(todayStatus.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'})}
                       </p>
                     </div>
                   )}
@@ -238,7 +247,7 @@ const AttendancePage = () => {
                     <div className="text-center">
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Check Out</p>
                       <p className="text-sm font-semibold text-red-600 flex items-center gap-1">
-                        <LogOut className="h-3.5 w-3.5" />{format(new Date(todayStatus.checkOut), 'hh:mm a')}
+                        <LogOut className="h-3.5 w-3.5" />{new Date(todayStatus.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'})}
                       </p>
                     </div>
                   )}

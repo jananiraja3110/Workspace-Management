@@ -3,18 +3,24 @@ const User = require('../models/User');
 const { createNotification } = require('../utils/createNotification');
 const { logActivity } = require('../utils/logActivity');
 
-// Helper: get today's date at midnight
-const getTodayDate = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
+// Returns today's date at UTC midnight, using IST to determine "today"
+const getTodayIST = () => {
+  const ist = new Date(Date.now() + IST_OFFSET);
+  return new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()));
 };
+
+// IST time string for logs
+const nowISTString = () =>
+  new Date(Date.now() + IST_OFFSET).toISOString().replace('T', ' ').slice(0, 19) + ' IST';
 
 // @desc    Check in for today
 // @route   POST /api/attendance/check-in
 // @access  Private
 const checkIn = async (req, res, next) => {
   try {
-    const today = getTodayDate();
+    const today = getTodayIST();
 
     // Check if already checked in today
     const existingRecord = await Attendance.findOne({
@@ -29,9 +35,8 @@ const checkIn = async (req, res, next) => {
 
     const now = new Date();
 
-    // Determine status: late if after 9:30 AM
-    const lateThreshold = new Date(today);
-    lateThreshold.setHours(9, 30, 0, 0);
+    // Determine status: late if after 9:30 AM IST
+    const lateThreshold = new Date(today.getTime() + (9 * 60 + 30) * 60 * 1000 - IST_OFFSET);
 
     const status = now > lateThreshold ? 'late' : 'present';
 
@@ -58,7 +63,7 @@ const checkIn = async (req, res, next) => {
       'check-in',
       'Attendance',
       attendance._id,
-      `Checked in at ${now.toLocaleTimeString()} - ${status}`,
+      `Checked in at ${nowISTString()} - ${status}`,
       req.ip
     );
 
@@ -76,7 +81,7 @@ const checkIn = async (req, res, next) => {
 // @access  Private
 const checkOut = async (req, res, next) => {
   try {
-    const today = getTodayDate();
+    const today = getTodayIST();
 
     const attendance = await Attendance.findOne({
       user: req.user._id,
@@ -107,7 +112,7 @@ const checkOut = async (req, res, next) => {
       'check-out',
       'Attendance',
       attendance._id,
-      `Checked out at ${now.toLocaleTimeString()} - Total: ${attendance.totalHours}h`,
+      `Checked out at ${nowISTString()} - Total: ${attendance.totalHours}h`,
       req.ip
     );
 
@@ -155,7 +160,7 @@ const getMyAttendance = async (req, res, next) => {
 // @access  Private
 const getTodayAttendance = async (req, res, next) => {
   try {
-    const today = getTodayDate();
+    const today = getTodayIST();
 
     const attendance = await Attendance.findOne({
       user: req.user._id,

@@ -32,8 +32,9 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: '' },
     resetPasswordToken: { type: String },
     resetPasswordExpire: { type: Date },
-    otpCode:   { type: String },
-    otpExpire: { type: Date },
+    otpCode:     { type: String },
+    otpExpire:   { type: Date },
+    otpAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -53,5 +54,7 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 
 userSchema.index({ role: 1 });
 userSchema.index({ managerId: 1 });
+userSchema.index({ isActive: 1 });
+userSchema.index({ email: 1 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -71,7 +71,8 @@ const ProfilePage = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      const { data } = await API.put('/auth/profile', form);
+      const { name, phone } = form;
+      const { data } = await API.put('/users/me', { name, phone });
       if (data.user) setUser(data.user);
       toast.success('Profile updated');
     } catch (err) {
@@ -107,6 +108,7 @@ const ProfilePage = () => {
   };
 
   const inputCls = "w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none";
+  const readOnlyCls = "w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-75";
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -184,13 +186,13 @@ const ProfilePage = () => {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 <span className="inline-flex items-center gap-1"><Building className="w-3.5 h-3.5" /> Department</span>
               </label>
-              <input type="text" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} className={inputCls} />
+              <input type="text" value={form.department} readOnly className={readOnlyCls} title="Contact HR to update your department" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 <span className="inline-flex items-center gap-1"><Award className="w-3.5 h-3.5" /> Designation</span>
               </label>
-              <input type="text" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className={inputCls} />
+              <input type="text" value={form.designation} readOnly className={readOnlyCls} title="Contact HR to update your designation" />
             </div>
           </div>
           <div className="flex justify-end">

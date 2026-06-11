@@ -133,7 +133,7 @@ const SpacesPage = () => {
   useEffect(() => {
     Promise.all([
       API.get('/spaces'),
-      API.get('/users'),
+      API.get('/users?isActive=true'),
     ]).then(([s, u]) => {
       setSpaces(s.data.spaces || []);
       setUsers(u.data.users || u.data || []);

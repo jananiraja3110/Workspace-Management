@@ -5,6 +5,7 @@ const {
   getUserById,
   createUser,
   updateUser,
+  updateMe,
   deleteUser,
   getTeam,
   updateAvatar,
@@ -17,6 +18,7 @@ router.use(protect);
 
 router.get('/', authorize('admin', 'hr', 'developer'), getUsers);
 router.get('/team', authorize('admin', 'hr', 'developer'), getTeam);
+router.put('/me', updateMe);
 router.get('/:id', authorize('admin', 'hr', 'developer'), getUserById);
 router.post('/', authorize('admin'), createUser);
 router.put('/:id', authorize('admin'), updateUser);

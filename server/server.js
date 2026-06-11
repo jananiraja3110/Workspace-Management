@@ -4,6 +4,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 
 // Load env vars
@@ -16,17 +17,33 @@ const app = express();
 const httpServer = http.createServer(app);
 
 // Socket.io setup
+const socketOrigin = process.env.NODE_ENV === 'production'
+  ? ['https://workspace.absolutedata.ai', 'https://www.workspace.absolutedata.ai']
+  : (process.env.CLIENT_URL || 'http://localhost:5173');
+
 const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: { origin: socketOrigin, methods: ['GET', 'POST'] },
 });
 
 // Map userId → socketId for targeted pushes
 const userSockets = new Map();
 
 io.on('connection', (socket) => {
-  socket.on('register', (userId) => {
-    if (userId) userSockets.set(String(userId), socket.id);
-  });
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    socket.disconnect();
+    return;
+  }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    socket.disconnect();
+    return;
+  }
+  const userId = decoded.id;
+  userSockets.set(String(userId), socket.id);
+
   socket.on('disconnect', () => {
     for (const [uid, sid] of userSockets.entries()) {
       if (sid === socket.id) { userSockets.delete(uid); break; }
@@ -47,6 +64,11 @@ app.set('pushNotification', pushNotification);
 // Wire socket push into notification util
 const { setPushFn } = require('./utils/createNotification');
 setPushFn(pushNotification);
+
+// Schedule daily due-date reminders after DB is ready
+const { scheduleDueDateReminders } = require('./utils/dueDateReminder');
+const mongoose = require('mongoose');
+mongoose.connection.once('open', () => scheduleDueDateReminders());
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -87,7 +109,8 @@ app.use('/api/celebrations', require('./routes/celebrationRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/spaces',       require('./routes/spaceRoutes'));
-app.use('/api/timeentries',  require('./routes/timeEntryRoutes'));
+app.use('/api/timeentries',    require('./routes/timeEntryRoutes'));
+app.use('/api/timesheetweeks', require('./routes/timesheetWeekRoutes'));
 
 // Error handler
 const errorHandler = require('./middleware/errorHandler');

@@ -1,11 +1,11 @@
 export const formatDate = (date) => {
   if (!date) return '';
-  return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 };
 
 export const formatTime = (date) => {
   if (!date) return '';
-  return new Date(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return new Date(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 };
 
 export const formatDateTime = (date) => {
@@ -26,9 +26,9 @@ export const calculateDays = (startDate, endDate) => {
 };
 
 export const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
+  const istHour = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCHours();
+  if (istHour < 12) return 'Good Morning';
+  if (istHour < 17) return 'Good Afternoon';
   return 'Good Evening';
 };
 
