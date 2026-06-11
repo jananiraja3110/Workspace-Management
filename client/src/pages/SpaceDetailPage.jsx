@@ -41,7 +41,7 @@ const PRIORITIES = [
 
 const stCfg  = (s) => STATUSES.find(x => x.id === s)   || STATUSES[0];
 const priCfg = (p) => PRIORITIES.find(x => x.id === p) || PRIORITIES[2];
-const fmtMins = (m) => { if (!m) return '0m'; const h = Math.floor(m/60), min=m%60; return h?`${h}h ${min}m`:`${min}m`; };
+const fmtMins = (m) => { if (!m) return '0h'; const h = (m / 60).toFixed(1); return `${h}h`; };
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
@@ -222,8 +222,11 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
   }
   async function logTime() {
     if (!timeInput) return;
+    const hours = parseFloat(timeInput);
+    if (isNaN(hours) || hours <= 0) return;
+    const minutes = Math.round(hours * 60);
     try {
-      const { data } = await API.patch(`/tasks/${t._id}/time`, { minutes: Number(timeInput) });
+      const { data } = await API.patch(`/tasks/${t._id}/time`, { minutes });
       onUpdate(t._id, null, data.task); setTimeInput(''); setShowTime(false); toast.success('Time logged');
     } catch { toast.error('Failed'); }
   }
@@ -324,8 +327,11 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
               </div>
               {showTime && (
                 <div className="flex items-center gap-2">
-                  <input type="number" value={timeInput} onChange={e => setTimeInput(e.target.value)} placeholder="minutes"
-                    className="flex-1 text-xs border border-slate-300 dark:border-slate-600 rounded px-2 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-400"/>
+                  <div className="flex-1 flex items-center border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 focus-within:border-indigo-400">
+                    <input type="number" min="0.1" step="0.25" value={timeInput} onChange={e => setTimeInput(e.target.value)} placeholder="e.g. 1.5"
+                      className="w-full text-xs px-2 py-1 bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none"/>
+                    <span className="text-xs text-slate-400 pr-2 select-none">hrs</span>
+                  </div>
                   <button onClick={logTime} className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">Log</button>
                 </div>
               )}
@@ -412,7 +418,7 @@ function TaskPanel({ task, users, isAdminOrHR, user, onUpdate, onDelete, onClose
             <div className="flex gap-2 pt-1">
               <Avatar name={user?.name || '?'} size={6}/>
               <div className="flex-1 relative">
-                <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Write a comment…"
+                <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Write a comment… (Ctrl+Enter to submit)"
                   onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addComment(); } }}
                   rows={2}
                   className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-400 resize-none"/>
@@ -924,7 +930,7 @@ export default function SpaceDetailPage() {
         {/* My tasks */}
         <button onClick={() => setMyTasks(o => !o)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${myTasksOnly ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}>
-          <User className="w-3.5 h-3.5"/> My tasks
+          <User className="w-3.5 h-3.5"/> {myTasksOnly ? 'My tasks ✕' : 'My tasks'}
         </button>
 
         {/* Add task */}

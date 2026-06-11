@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  verifyOtp,
   getMe,
   changePassword,
   forgotPassword,
@@ -28,8 +29,11 @@ router.post('/register', async (req, res, next) => {
   });
 });
 
-// POST /login - public
+// POST /login - public (step 1: verify credentials, send OTP)
 router.post('/login', login);
+
+// POST /verify-otp - public (step 2: verify OTP, return JWT)
+router.post('/verify-otp', verifyOtp);
 
 // GET /me - protected
 router.get('/me', protect, getMe);

@@ -68,7 +68,7 @@ const register = async (req, res, next) => {
   }
 };
 
-// @desc    Login user
+// @desc    Login step 1 — verify credentials, send OTP
 // @route   POST /api/auth/login
 // @access  Public
 const login = async (req, res, next) => {
@@ -80,7 +80,6 @@ const login = async (req, res, next) => {
       return next(new Error('Please provide email and password'));
     }
 
-    // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
@@ -93,22 +92,75 @@ const login = async (req, res, next) => {
       return next(new Error('Account has been deactivated'));
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       res.status(401);
       return next(new Error('Invalid credentials'));
     }
 
-    // Update last login
+    // Generate 6-digit OTP, expire in 10 min
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otpCode   = otp;
+    user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    sendEmail(
+      email,
+      'Your AD Workspace Login OTP',
+      `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px">
+        <h2 style="color:#4f46e5;margin-bottom:8px">Login Verification</h2>
+        <p style="color:#64748b">Hi ${user.name}, use the OTP below to complete your login.</p>
+        <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#1e293b;text-align:center;padding:24px 0">${otp}</div>
+        <p style="color:#94a3b8;font-size:13px">This OTP is valid for <b>10 minutes</b>. Do not share it with anyone.</p>
+      </div>`
+    ).catch(err => console.error('OTP email failed:', err.message));
+
+    res.status(200).json({ success: true, otpSent: true, email });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Login step 2 — verify OTP, return JWT
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      res.status(400);
+      return next(new Error('Email and OTP are required'));
+    }
+
+    const user = await User.findOne({ email }).select('+otpCode +otpExpire');
+
+    if (!user || !user.otpCode) {
+      res.status(401);
+      return next(new Error('OTP not requested or already used'));
+    }
+
+    if (new Date() > user.otpExpire) {
+      res.status(401);
+      return next(new Error('OTP has expired. Please login again'));
+    }
+
+    if (user.otpCode !== otp.trim()) {
+      res.status(401);
+      return next(new Error('Invalid OTP'));
+    }
+
+    // Clear OTP
+    user.otpCode   = undefined;
+    user.otpExpire = undefined;
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
     const token = generateToken(user);
-
-    // Return user without password
     const userObj = user.toObject();
     delete userObj.password;
+    delete userObj.otpCode;
+    delete userObj.otpExpire;
 
     res.status(200).json({
       success: true,
@@ -228,6 +280,7 @@ const forgotPassword = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  verifyOtp,
   getMe,
   changePassword,
   forgotPassword,

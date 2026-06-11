@@ -40,7 +40,9 @@ const getEntries = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const weekParam = req.query.week;
-    const weekStart = weekParam ? mondayOf(new Date(`${weekParam}T00:00:00Z`)) : mondayOf(new Date());
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(Date.now() + istOffset);
+    const weekStart = weekParam ? mondayOf(new Date(`${weekParam}T00:00:00Z`)) : mondayOf(istNow);
     const weekEnd = new Date(weekStart.getTime());
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
 

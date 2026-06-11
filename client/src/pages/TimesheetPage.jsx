@@ -18,11 +18,7 @@ const WEEK_TARGET = 2400;  // 40h in minutes
 function fmtMins(total) {
   const m = Math.max(0, Math.round(total));
   if (!m) return '0h';
-  const h = Math.floor(m / 60);
-  const mins = m % 60;
-  if (h && mins) return `${h}h ${mins}m`;
-  if (h) return `${h}h`;
-  return `${mins}m`;
+  return `${(m / 60).toFixed(1)}h`;
 }
 
 function fmtTimer(seconds) {

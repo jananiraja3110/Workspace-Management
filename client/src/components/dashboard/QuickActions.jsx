@@ -5,7 +5,6 @@ import {
   CalendarOff,
   Mic,
   MessageSquare,
-  LifeBuoy,
 } from 'lucide-react';
 
 const QuickActions = ({ isClockedIn = false }) => {
@@ -36,12 +35,6 @@ const QuickActions = ({ isClockedIn = false }) => {
       to: '/messages',
       color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30',
     },
-    {
-      label: 'Raise Ticket',
-      icon: LifeBuoy,
-      to: '/tickets',
-      color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30',
-    },
   ];
 
   return (
@@ -49,7 +42,7 @@ const QuickActions = ({ isClockedIn = false }) => {
       <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         Quick Actions
       </h3>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {actions.map((action) => (
           <Link
             key={action.label}

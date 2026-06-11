@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const User = require('../models/User');
+const TimeEntry = require('../models/TimeEntry');
 const { createNotification } = require('../utils/createNotification');
 const { logActivity } = require('../utils/logActivity');
 const { sendEmail } = require('../utils/sendEmail');
@@ -238,6 +239,18 @@ const logTime = async (req, res, next) => {
       { new: true }
     );
     if (!task) { res.status(404); return next(new Error('Task not found')); }
+
+    // Save to timesheet — use IST (UTC+5:30) date so late-night logs land on correct day
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + istOffset);
+    const today = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()));
+    await TimeEntry.create({
+      user: req.user._id,
+      task: task._id,
+      date: today,
+      minutes,
+    });
 
     const populated = await populateTask(Task.findById(task._id));
     res.status(200).json({ success: true, task: populated });
