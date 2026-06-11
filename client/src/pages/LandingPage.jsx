@@ -66,9 +66,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200/50">
-                <span className="text-white font-bold text-sm">AD</span>
-              </div>
+              <img src="/logo.png" alt="AD Workspace" className="w-9 h-9 rounded-xl object-contain" />
               <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">AD Workspace</span>
             </Link>
             <div className="flex items-center gap-2">
@@ -294,9 +292,7 @@ const LandingPage = () => {
       <footer className="border-t border-slate-200 dark:border-slate-700 py-10 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xs">AD</span>
-            </div>
+            <img src="/logo.png" alt="AD Workspace" className="w-8 h-8 rounded-xl object-contain" />
             <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight">AD Workspace</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
