@@ -27,9 +27,9 @@ const AttendancePage = () => {
   const [loadingMy,   setLoadingMy]   = useState(false);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [currentTime, setCurrentTime] = useState(() => new Date(Date.now() + 5.5*60*60*1000));
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
-  const _istNow = new Date(Date.now() + 5.5*60*60*1000);
+  const _istNow = new Date();
   const _istY = _istNow.getUTCFullYear(), _istM = _istNow.getUTCMonth();
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(Date.UTC(_istY, _istM, 1));
@@ -43,7 +43,7 @@ const AttendancePage = () => {
   // Live clock (non-admin only) — shows IST
   useEffect(() => {
     if (isAdmin) return;
-    const timer = setInterval(() => setCurrentTime(new Date(Date.now() + 5.5*60*60*1000)), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, [isAdmin]);
 

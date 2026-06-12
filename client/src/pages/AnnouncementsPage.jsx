@@ -164,7 +164,7 @@ const AnnouncementsPage = () => {
                     <span className="font-medium">{ann.author?.name || 'Admin'}</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {ann.createdAt ? format(new Date(ann.createdAt), 'MMM dd, yyyy hh:mm a') : ''}
+                      {ann.createdAt ? new Date(ann.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-3 flex-wrap">

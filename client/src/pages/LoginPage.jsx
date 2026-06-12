@@ -121,59 +121,59 @@ const LoginPage = () => {
       <Branding />
 
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4 sm:px-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-lg">
           <div className="lg:hidden text-center mb-8">
             <div className="w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200/50 mb-4">
               <span className="text-white font-bold text-xl">AD</span>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 dark:border-slate-700 p-8">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 dark:border-slate-700 p-10">
 
             {step === 'credentials' ? (
               <>
                 <div className="mb-8">
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back</h1>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1.5">Sign in to your workspace account</p>
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Welcome back</h1>
+                  <p className="text-slate-500 dark:text-slate-400 mt-2 text-base">Sign in to your workspace account</p>
                 </div>
 
                 <form onSubmit={handleCredentials} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
+                    <label className="block text-base font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
                         type="email" value={email} onChange={e => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 bg-slate-50 dark:bg-slate-700/50 focus:bg-white dark:focus:bg-slate-700"
+                        className="w-full pl-11 pr-4 py-3.5 text-base border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 bg-slate-50 dark:bg-slate-700/50 focus:bg-white dark:focus:bg-slate-700"
                         placeholder="you@company.com"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
+                    <label className="block text-base font-medium text-slate-700 dark:text-slate-300 mb-2">Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
                         type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-12 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 bg-slate-50 dark:bg-slate-700/50 focus:bg-white dark:focus:bg-slate-700"
+                        className="w-full pl-11 pr-12 py-3.5 text-base border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 bg-slate-50 dark:bg-slate-700/50 focus:bg-white dark:focus:bg-slate-700"
                         placeholder="Enter your password"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-0.5">
-                        {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-end">
-                    <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                    <Link to="/forgot-password" className="text-base font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
                       Forgot Password?
                     </Link>
                   </div>
 
                   <button type="submit" disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-indigo-800 focus:ring-4 focus:ring-indigo-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200/50">
+                    className="w-full py-3.5 text-base bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-indigo-800 focus:ring-4 focus:ring-indigo-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200/50">
                     {loading ? (
                       <><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -189,8 +189,8 @@ const LoginPage = () => {
                   <div className="w-14 h-14 mx-auto bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mb-4">
                     <ShieldCheck className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Check your email</h1>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-sm">
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Check your email</h1>
+                  <p className="text-slate-500 dark:text-slate-400 mt-2 text-base">
                     We sent a 6-digit OTP to<br />
                     <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>
                   </p>
@@ -198,8 +198,8 @@ const LoginPage = () => {
 
                 <form onSubmit={handleVerifyOtp} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">Enter OTP</label>
-                    <div className="flex gap-2 justify-center" onPaste={handleOtpPaste}>
+                    <label className="block text-base font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">Enter OTP</label>
+                    <div className="flex gap-3 justify-center" onPaste={handleOtpPaste}>
                       {otp.map((digit, idx) => (
                         <input
                           key={idx}
@@ -207,11 +207,11 @@ const LoginPage = () => {
                           type="text" inputMode="numeric" maxLength={1} value={digit}
                           onChange={e => handleOtpChange(e.target.value, idx)}
                           onKeyDown={e => handleOtpKeyDown(e, idx)}
-                          className="w-11 h-12 text-center text-lg font-bold border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                          className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                         />
                       ))}
                     </div>
-                    <p className="text-center text-xs text-slate-400 mt-3">OTP valid for 10 minutes</p>
+                    <p className="text-center text-sm text-slate-400 mt-3">OTP valid for 10 minutes</p>
                   </div>
 
                   <button type="submit" disabled={loading || otp.join('').length < 6}

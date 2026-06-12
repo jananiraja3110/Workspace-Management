@@ -132,6 +132,7 @@ const login = async (req, res, next) => {
         <p style="color:#94a3b8;font-size:13px">This OTP is valid for <b>10 minutes</b>. Do not share it with anyone.</p>
       </div>`
     ).catch(err => console.error('OTP email failed:', err.message));
+    console.log(`\n========== OTP for ${email}: ${otp} ==========\n`);
 
     res.status(200).json({ success: true, otpSent: true, email });
   } catch (error) {

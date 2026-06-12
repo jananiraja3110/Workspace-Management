@@ -17,7 +17,7 @@ router.get('/', getTasks);
 router.post('/', authorize('admin', 'hr'), createTask);
 router.patch('/reorder', reorderTasks);
 router.get('/:id', getTaskById);
-router.put('/:id', authorize('admin', 'hr'), updateTask);
+router.put('/:id', updateTask);
 router.delete('/:id', authorize('admin', 'hr'), deleteTask);
 
 router.patch('/:id/watch', toggleWatch);

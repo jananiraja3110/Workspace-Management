@@ -109,7 +109,10 @@ const createTask = async (req, res, next) => {
 // @access  Admin, HR (or assignee for status)
 const updateTask = async (req, res, next) => {
   try {
-    const allowed = ['title', 'description', 'status', 'priority', 'startDate', 'dueDate', 'assignedTo', 'space', 'timeEstimate', 'order'];
+    const isAdminOrHR = req.user.role === 'admin' || req.user.role === 'hr';
+    const allowed = isAdminOrHR
+      ? ['title', 'description', 'status', 'priority', 'startDate', 'dueDate', 'assignedTo', 'space', 'timeEstimate', 'order']
+      : ['status']; // non-admin/HR can only change status
     const updates = {};
     allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
 

@@ -151,7 +151,7 @@ const TicketsPage = () => {
               </div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{selectedTicket.subject}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                By {selectedTicket.user?.name || '-'} | {selectedTicket.createdAt ? format(new Date(selectedTicket.createdAt), 'MMM dd, yyyy hh:mm a') : ''}
+                By {selectedTicket.user?.name || '-'} | {selectedTicket.createdAt ? new Date(selectedTicket.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : ''}
               </p>
             </div>
             {isAdmin && (
@@ -183,7 +183,7 @@ const TicketsPage = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{c.user?.name || 'User'}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {c.createdAt ? format(new Date(c.createdAt), 'MMM dd, hh:mm a') : ''}
+                        {c.createdAt ? new Date(c.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : ''}
                       </span>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-300">{c.text}</p>

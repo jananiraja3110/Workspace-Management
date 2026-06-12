@@ -21,6 +21,19 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
+const SERVER = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+function UserAvatar({ user, size = 6 }) {
+  const [err, setErr] = useState(false);
+  const initials = (user?.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const colors = ['bg-indigo-500','bg-violet-500','bg-pink-500','bg-rose-500','bg-amber-500','bg-emerald-500','bg-sky-500'];
+  const color = colors[(user?.name?.charCodeAt(0) || 0) % colors.length];
+  const src = !err && user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${SERVER}${user.avatar}`) : null;
+  const cls = `w-${size} h-${size} rounded-full flex-shrink-0 object-cover`;
+  if (src) return <img src={src} alt={user.name} className={cls} onError={() => setErr(true)}/>;
+  return <div className={`${cls} ${color} flex items-center justify-center text-white text-[10px] font-bold`}>{initials}</div>;
+}
+
 // ── constants ─────────────────────────────────────────────────────────────────
 
 const STATUSES = [
@@ -97,11 +110,23 @@ function NewTaskModal({ users, onSave, onClose }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Assignees</label>
-              <select multiple value={form.assignedTo} onChange={e => set('assignedTo', Array.from(e.target.selectedOptions, o => o.value))}
-                size={Math.min(users.length, 4)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
-                {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 overflow-y-auto max-h-40">
+                {users.map(u => {
+                  const selected = form.assignedTo.includes(u._id);
+                  return (
+                    <button key={u._id} type="button"
+                      onClick={() => set('assignedTo', selected ? form.assignedTo.filter(id => id !== u._id) : [...form.assignedTo, u._id])}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-600 ${selected ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>
+                      <div className="relative flex-shrink-0">
+                        <UserAvatar user={u} size={7}/>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-700 ${selected ? 'bg-emerald-500' : 'bg-slate-300'}`}/>
+                      </div>
+                      <span className={`flex-1 truncate font-medium ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>{u.name}</span>
+                      {selected && <Check className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0"/>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Due Date</label>

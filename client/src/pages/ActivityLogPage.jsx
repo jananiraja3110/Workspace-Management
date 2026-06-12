@@ -135,7 +135,7 @@ const ActivityLogPage = () => {
                   {logs.map(log => (
                     <tr key={log._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                        {log.createdAt ? format(new Date(log.createdAt), 'MMM dd, yyyy hh:mm a') : '-'}
+                        {log.createdAt ? new Date(log.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100">
                         {log.user?.name || '-'}

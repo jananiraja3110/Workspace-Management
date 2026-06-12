@@ -156,7 +156,7 @@ const StandupsPage = () => {
               <span className="font-semibold text-slate-800 dark:text-slate-100">{entry.user?.name || 'Unknown'}</span>
             )}
             <span className="text-sm text-slate-500 dark:text-slate-400">
-              {entry.date ? format(new Date(entry.date), 'MMM dd, yyyy') : format(new Date(entry.createdAt), 'MMM dd, yyyy')}
+              {new Date(entry.date || entry.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
             </span>
             {timeRange && (
               <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">

@@ -169,14 +169,14 @@ const MessagesPage = () => {
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    if (isToday(date)) return format(date, 'h:mm a');
+    if (isToday(date)) return new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
     if (isYesterday(date)) return 'Yesterday';
-    return format(date, 'MMM dd');
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' });
   };
 
   const formatMessageTime = (dateStr) => {
     if (!dateStr) return '';
-    return format(new Date(dateStr), 'h:mm a');
+    return new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
   };
 
   const getInitials = (name) => {

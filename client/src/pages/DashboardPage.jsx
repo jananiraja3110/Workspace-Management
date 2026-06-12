@@ -75,7 +75,7 @@ const WhosInWidget = ({ attendance = [] }) => {
             <span className="text-sm text-slate-700 dark:text-slate-300 flex-1 truncate">{name}</span>
             <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              {a.checkIn ? format(new Date(a.checkIn), 'hh:mm a') : 'In'}
+              {a.checkIn ? new Date(a.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : 'In'}
             </span>
           </div>
         );
@@ -191,7 +191,7 @@ const AdminDashboard = ({ stats }) => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-700 dark:text-slate-300">{item.details || item.message || item.action}</p>
                       <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                        {item.user?.name || 'System'} · {item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {item.user?.name || 'System'} · {item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : ''}
                       </p>
                     </div>
                   </div>
